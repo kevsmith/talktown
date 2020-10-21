@@ -29,10 +29,10 @@ class Whereabouts(object):
         timesteps.sort(key=lambda step: (step[0], step[1]))
         for timestep in timesteps:
             whereabout = self.date[timestep]
-            print '{},\t{}:\t{}\t({})'.format(
+            print('{},\t{}:\t{}\t({})'.format(
                 whereabout.date[7:] if whereabout.time_of_day == 'day' else whereabout.date[9:],
                 whereabout.time_of_day, whereabout.location.name, whereabout.occasion
-            )
+            ))
 
     @property
     def current_occasion(self):
@@ -86,6 +86,3 @@ class Whereabout(object):
                 self.location.name, self.location.address,
                 self.date[0].lower()+self.date[1:]
             )
-
-
-

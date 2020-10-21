@@ -1,5 +1,5 @@
-# To simulate ahead in time, simply use the 'Simulation.simulate()' method, which 
-# takes the number of timesteps as its argument. There's two timesteps for each 
+# To simulate ahead in time, simply use the 'Simulation.simulate()' method, which
+# takes the number of timesteps as its argument. There's two timesteps for each
 # day, so Simulation.simulate(730) will simulate one year, and so forth.
 
 # To retrieve a person (i.e., the Python object in memory that represents them) by
@@ -19,9 +19,9 @@ def list_attributes(entity):
 
 	The listing of attributes won't give an exhuastive account of the kinds of data that are
 	stored for most entities, since some attributes will hold objects that themselves have
-	attributes. For example, 'person.face' will hold a Face object, which itself will have 
-	attributes holding objects pertaining to components of the face. Generally, though, the 
-	listing	produced by this function should give you a good idea of some of the kinds of data 
+	attributes. For example, 'person.face' will hold a Face object, which itself will have
+	attributes holding objects pertaining to components of the face. Generally, though, the
+	listing	produced by this function should give you a good idea of some of the kinds of data
 	that are stored (some of which may be narratively potent).
 
 	Additionally, any attributes that are computed dynamically (by using Python @property
@@ -54,12 +54,12 @@ def list_attributes(entity):
 		years_i_lived_here
 	"""
 	for attribute in sorted(vars(entity).keys()):  # Prints them out in alphabetical order
-		print attribute
+		print(attribute)
 
 
 def outline_physical_description(person):
 	"""Outline a person's physical description."""
-	print person.description
+	print(person.description)
 
 
 def outline_personality(person):
@@ -67,30 +67,30 @@ def outline_personality(person):
 	str = "\nFive-factor personality model of {}:\n\n".format(person.name)
 	str += "\tOpenness: {}{}\n".format(
 		person.personality.component_str('o'),
-		'' if not person.personality.o.inherited_from else 
+		'' if not person.personality.o.inherited_from else
 		' (takes after {})'.format(person.personality.o.inherited_from.name)
 	)
 	str += "\tConscientiousness: {}{}\n".format(
 		person.personality.component_str('c'),
-		'' if not person.personality.c.inherited_from else 
+		'' if not person.personality.c.inherited_from else
 		' (takes after {})'.format(person.personality.c.inherited_from.name)
 	)
 	str += "\tExtroversion: {}{}\n".format(
 		person.personality.component_str('e'),
-		'' if not person.personality.e.inherited_from else 
+		'' if not person.personality.e.inherited_from else
 		' (takes after {})'.format(person.personality.e.inherited_from.name)
 	)
 	str += "\tAgreeableness: {}{}\n".format(
 		person.personality.component_str('a'),
-		'' if not person.personality.a.inherited_from else 
+		'' if not person.personality.a.inherited_from else
 		' (takes after {})'.format(person.personality.a.inherited_from.name)
 	)
 	str += "\tNeuroticism: {}{}\n".format(
 		person.personality.component_str('n'),
-		'' if not person.personality.n.inherited_from else 
+		'' if not person.personality.n.inherited_from else
 		' (takes after {})'.format(person.personality.n.inherited_from.name)
 	)
-	print str
+	print(str)
 
 
 def outline_love_life(person):
@@ -122,7 +122,7 @@ def outline_love_life(person):
 		)
 	else:
 		str += "\tOther love interests: none\n"
-	print str
+	print(str)
 
 
 def outline_family(person):
@@ -142,17 +142,16 @@ def outline_family(person):
 	str += "\tNieces: {}\n".format(', '.join(x.name for x in person.nieces) if person.nieces else 'none')
 	str += "\tNephews: {}\n".format(', '.join(x.name for x in person.nephews) if person.nephews else 'none')
 	str += "\tCousins: {}\n".format(', '.join(x.name for x in person.cousins) if person.cousins else 'none')
-	print str
+	print(str)
 
 
 def list_ancestors(person):
 	"""List all of a person's ancestors."""
 	for ancestor in person.ancestors:
-			print ancestor
+			print(ancestor)
 
 
 def list_work_history(person):
 	"""List out a person's occupational history."""
 	for o in person.occupations:
-			print o
-
+			print(o)

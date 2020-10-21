@@ -1,4 +1,4 @@
-class Relationship(object):
+class Relationship:
     """A social and/or romantic relationship between two people in a town."""
 
     def __init__(self, owner, subject, preceded_by):
@@ -67,6 +67,12 @@ class Relationship(object):
         self.interacted_this_timestep = False
         # Keep track of all the conversations they've had during hi-fi timesteps
         self.conversations = []
+
+    def __gt__(self, other):
+        """Greater than"""
+        if type(other) is int:
+            return self.charge > other
+        return self.charge > other.charge
 
     def _init_get_compatibility(self):
         """Determine the objective compatibility of these two people.

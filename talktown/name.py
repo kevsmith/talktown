@@ -1,4 +1,4 @@
-from corpora import Names
+from .corpora import Names
 
 
 class Name(str):

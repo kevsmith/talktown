@@ -1,15 +1,15 @@
 import random
-from business import *
-from residence import *
-from occupation import *
-import pyqtree
-from random import gauss,randrange
-from corpora import Names
-from config import Config
+from .business import *
+from .residence import *
+from .occupation import *
+from . import pyqtree
+from random import gauss, randrange
+from .corpora import Names
+from .config import Config
 import heapq
 
 
-class Town(object):
+class Town:
     """A procedurally generated American small town on a 9x9 grid of city blocks.
 
     Most of the code for this class was written by Adam Summerville.
@@ -18,6 +18,7 @@ class Town(object):
     def __init__(self, sim):
         """Initialize a Town object."""
         self.sim = sim
+        self.houses = set()
         self.founded = sim.year
         self.settlers = set()  # Will get added to during Simulation.establish_setting()
         self.residents = set()
@@ -93,7 +94,7 @@ class Town(object):
     def __str__(self):
         """Return the town's name and population."""
         return "{} (pop. {})".format(self.name, self.population)
-        
+
     def get_parcels(self):
         output_parcels = {}
         for parcel in self.parcels:
@@ -111,7 +112,7 @@ class Town(object):
                 "neighbors": neighbors
             }
         return output_parcels
-        
+
     def get_lots(self):
         output_lots = {}
         for lot in self.lots | self.tracts:
@@ -167,7 +168,7 @@ class Town(object):
         return output
 
     def dist_from_downtown(self,lot):
-        
+
         return self.distance_between(lot,self.downtown)
 
     def generatePaths(self):
@@ -185,7 +186,7 @@ class Town(object):
                             count += 1
                         self.paths[(start,goal)] =count
                         self.paths[(goal,start)] =count
-                        
+
     def distance_between(self, lot1, lot2):
         min_dist = float("inf")
         for parcel in lot1.parcels:
@@ -204,7 +205,7 @@ class Town(object):
             return min(businesses_of_this_type, key=lambda b: self.distance_between(lot, b.lot))
         else:
             return None
-        
+
     def dist_to_nearest_business_of_type(self, lot, business_type, exclusion):
         """Return the Manhattan distance between this lot and the nearest company of the given type.
 
@@ -257,7 +258,7 @@ class Town(object):
                         lots_already_considered.add(neighbor_to_that_lot)
                         tertiary_density += 1
         return tertiary_density
-        
+
     def generate_lots(self, config):
         loci = 3
         samples = 32
@@ -272,17 +273,17 @@ class Town(object):
             point.append(point[0]+1)
             point.append(point[1]+1)
             tree.insert(point,point)
-            
+
         nsstreets = {}
         ewstreets = {}
         parcels = []
         lots = []
         tracts =[]
-            
+
         nsEnd = []
         ewEnd = []
         streets = []
-        
+
         def traverseTree(node):
             if (len(node.children)==0 and node.width != 1):
                 w =int( node.center[0]-node.width*0.5)
@@ -295,11 +296,11 @@ class Town(object):
                 nsstreets[ (e,n)] = (e,s)
                 ewstreets[ (w,n)] = (e,n)
                 ewstreets[ (w,s)] = (e,s)
-                
+
             for child in node.children:
                 traverseTree(child)
-        traverseTree(tree)        
-        
+        traverseTree(tree)
+
         for ii in range(0,size+2,2):
             for jj in range(0,size+2,2):
                 street = (ii,jj)
@@ -309,7 +310,7 @@ class Town(object):
                     while end in nsstreets:
                         end = nsstreets[end]
                     if (end not in nsEnd):
-                        nsEnd.append(end)             
+                        nsEnd.append(end)
                         streets.append(['ns',start, end])
                 if street in ewstreets:
                     start = street
@@ -317,13 +318,13 @@ class Town(object):
                     while end in ewstreets:
                         end = ewstreets[end]
                     if (end not in ewEnd):
-                        ewEnd.append(end)             
-                        streets.append(['ew',start, end])         
-        
+                        ewEnd.append(end)
+                        streets.append(['ew',start, end])
+
         nsStreets = {}
         ewStreets = {}
         connections = {}
-        for street in streets:            
+        for street in streets:
             number = int(street[1][0]/2 if street[0] == "ns" else street[1][1]/2)+1
             direction = ""
             starting_parcel = 0
@@ -337,7 +338,7 @@ class Town(object):
                 direction =( "E" if number < size/4 else "W")
                 starting_parcel =  street[1][0]
                 ending_parcel =  street[2][0]
-            
+
             starting_parcel = int(starting_parcel/2)+1
             ending_parcel = int(ending_parcel/2)+1
             reifiedStreet = (Street(self, number, direction, starting_parcel, ending_parcel))
@@ -362,17 +363,17 @@ class Town(object):
                 if (not next in connections):
                     connections[next] = set()
                 connections[next].add(coord)
-                
+
 
         def insertInto(dict,key,value):
             if (not key in dict):
                 dict[key] = []
             dict[key].append(value)
-            
+
         def insertOnce(dict,key,value):
             if (not key in dict):
                 dict[key] = value
-                
+
         lots = {}
         Parcels = {}
         Numberings = {}
@@ -388,7 +389,7 @@ class Town(object):
                 tract = Tract(self, size=size_of_parcel)
                 self.tracts.add(tract)
             for ii in range(0,size_of_parcel+1):
-                
+
                 insertOnce(Parcels,(ew,ns+ii,'NS'),Parcel( nsStreets[(ew,ns)], (ii+ns)*100,(ew,ns+ii)))
                 insertOnce(Numberings,(ew,ns+ii,'E'),Parcel.determine_house_numbering( (ii+ns)*100,'E', config))
                 insertOnce(Parcels,(ew+ii,ns,'EW'),Parcel( ewStreets[(ew,ns)], (ii+ew)*100,(ew+ii,ns)))
@@ -402,60 +403,60 @@ class Town(object):
                     tract.add_parcel( Parcels[(ew+ii,ns,'EW')],Numberings[(ew+ii,ns,'N')][n_buildings_per_parcel] ,'N',0)
                     if (ew+size_of_parcel <= size/2):
                         tract.add_parcel(Parcels[(ew+size_of_parcel,ns+ii,'NS')],Numberings[(ew+size_of_parcel,ns+ii,'W')][n_buildings_per_parcel],'W',0)
-                    
+
                     if (ns+size_of_parcel <= size/2):
                         tract.add_parcel( Parcels[(ew+ii,ns+size_of_parcel,'EW')],Numberings[(ew+ii,ns+size_of_parcel,'S')][n_buildings_per_parcel],'S',0)
-             
+
             neCorner = Lot(self)
             insertInto(lots,(ew,ns,'N'),(0,neCorner))
             insertInto(lots,(ew,ns,'E'),(0,neCorner))
             self.lots.add(neCorner)
             corners.add((ew,ns,'EW',ew,ns,'NS'))
-            
+
             nwCorner = Lot(self)
             if (ew+size_of_parcel <= size/2):
                 insertInto(lots,(ew+size_of_parcel-1,ns,'N'),(n_buildings_per_parcel-1,nwCorner))
             insertInto(lots,(ew+size_of_parcel,ns,'W'),(0,nwCorner))
             corners.add((ew+size_of_parcel-1,ns,'EW',ew+size_of_parcel,ns,'NS'))
             self.lots.add(nwCorner)
-            
+
             seCorner = Lot(self)
             insertInto(lots,(ew,ns+size_of_parcel,'S'),(0,seCorner))
             if (ns+size_of_parcel <= size/2):
                 insertInto(lots,(ew,ns+size_of_parcel-1,'E'),(n_buildings_per_parcel-1,seCorner))
             self.lots.add(seCorner)
             corners.add((ew,ns+size_of_parcel,'EW',ew,ns+size_of_parcel-1,'NS'))
-            
+
             swCorner = Lot(self)
             insertInto(lots,(ew+size_of_parcel-1,ns+size_of_parcel,'S'),(n_buildings_per_parcel-1,swCorner))
             insertInto(lots,(ew+size_of_parcel,ns+size_of_parcel-1,'W'),(n_buildings_per_parcel-1,swCorner))
             corners.add((ew+size_of_parcel-1,ns+size_of_parcel,'EW',ew+size_of_parcel,ns+size_of_parcel-1,'NS'))
             self.lots.add(swCorner)
-            
+
             for ii in range(1,size_of_parcel*n_buildings_per_parcel-1):
                 parcel_n = int(ii/2)
                 lot = Lot(self)
-                self.lots.add(lot)      
+                self.lots.add(lot)
                 insertInto(lots,(ew,ns+parcel_n,'E'),(ii %n_buildings_per_parcel,lot))
                 lot = Lot(self)
-                self.lots.add(lot)      
+                self.lots.add(lot)
                 insertInto(lots,(ew+parcel_n,ns,'N'),(ii %n_buildings_per_parcel,lot))
                 lot = Lot(self)
-                self.lots.add(lot)      
+                self.lots.add(lot)
                 insertInto(lots,(ew+size_of_parcel,ns+parcel_n,'W'),(ii %n_buildings_per_parcel,lot))
                 lot = Lot(self)
-                self.lots.add(lot)      
+                self.lots.add(lot)
                 insertInto(lots,(ew+parcel_n,ns+size_of_parcel,'S'),(ii %n_buildings_per_parcel,lot))
         for parcel in lots:
             dir = 'NS' if parcel[2] == 'W' or parcel[2] == 'E' else 'EW'
             parcel_object = Parcels[(parcel[0],parcel[1],dir)]
             lotList = lots[parcel]
-            
+
             for lot in lotList:
                 lot[1].add_parcel(parcel_object,Numberings[parcel][lot[0]],parcel[2],lot[0])
                 parcel_object.lots.append(lot[1])
-                
-        for conn in connections: 
+
+        for conn in connections:
             for neighbor in connections[conn]:
                 dx = neighbor[0] - conn[0]
                 dy = neighbor[1] - conn[1]
@@ -468,7 +469,7 @@ class Town(object):
         for corner in corners:
             Parcels[(corner[0],corner[1],corner[2])].add_neighbor(Parcels[(corner[3],corner[4],corner[5])])
             Parcels[(corner[3],corner[4],corner[5])].add_neighbor(Parcels[(corner[0],corner[1],corner[2])])
-            
+
         for parcel in Parcels:
             self.parcels.add(Parcels[parcel])
         # Currently being set to town founder by CityHall.__init__(); this is never updated or used
@@ -598,13 +599,13 @@ class Town(object):
         cost_so_far = {}
         came_from[start] = None
         cost_so_far[start] = 0
-        
+
         while not frontier.empty():
             current = frontier.get()
-            
+
             if current == goal:
                 break
-            
+
             for next in current.neighbors:
                 new_cost = cost_so_far[current] + 1
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
@@ -612,7 +613,7 @@ class Town(object):
                     priority = new_cost + Town.heuristic(goal, next)
                     frontier.put(next, priority)
                     came_from[next] = current
-        
+
         return came_from, cost_so_far
 
 
@@ -689,7 +690,7 @@ class Parcel(object):
         house_numbers = []
         house_number_increment = int(100.0 / n_buildings)
         even_or_odd = 0 if side_of_street == "E" or side_of_street == "N" else 1
-        for i in xrange(n_buildings):
+        for i in range(n_buildings):
             base_house_number = (i * house_number_increment) - 1
             house_number = base_house_number + int(random.random() * house_number_increment)
             if house_number % 2 == (1-even_or_odd):
@@ -704,6 +705,9 @@ class Parcel(object):
 
     def add_neighbor(self, other):
         self.neighbors.append(other)
+
+    def __lt__(self, other):
+        return self.id < other.id
 
 
 class Block(object):
@@ -844,6 +848,9 @@ class Tract(Lot):
         self.size = size
         super(Tract, self).__init__(town)
 
+    def __gt__(self, other):
+        return self.size > other.size
+
 
 class PriorityQueue:
     """A helper class used when generating a town layout."""
@@ -851,13 +858,13 @@ class PriorityQueue:
     def __init__(self):
         """Initialize a PriorityQueue object."""
         self.elements = []
-    
+
     def empty(self):
         return len(self.elements) == 0
-    
+
     def put(self, item, priority):
         heapq.heappush(self.elements, (priority, item))
-    
+
     def get(self):
         return heapq.heappop(self.elements)[1]
 

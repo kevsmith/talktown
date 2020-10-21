@@ -1,4 +1,4 @@
-class LifeCycleConfig(object):
+class LifeCycleConfig:
     """Configuration parameters related to character life cycles (birth, life, death, sex, aging, etc.)."""
     # Sex
     chance_sexual_protection_does_not_work = 0.01

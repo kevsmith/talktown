@@ -1,7 +1,8 @@
-from utils import fit_probability_distribution
+from ..utils import fit_probability_distribution
 
 
-class RoutineConfig(object):
+class RoutineConfig:
+
     """Configuration parameters related to character daily routines."""
     # Deciding whether to leave home on a simulated timestep
     chance_someone_leaves_home_on_day_off_floor = {
@@ -95,10 +96,15 @@ class RoutineConfig(object):
     }
     # Do not alter these two
     temp_probabilities = fit_probability_distribution(who_someone_visiting_will_visit_relative_frequencies)
-    who_someone_visiting_will_visit_probabilities = tuple([
-        ((temp_probabilities[relation][0], temp_probabilities[relation][1]), relation)
-        for relation in temp_probabilities
-    ])
+
+    # FIX THIS LATER
+    _temp = []
+
+    for relation in temp_probabilities:
+        _temp.append(((temp_probabilities[relation][0], temp_probabilities[relation][1]), relation))
+
+    who_someone_visiting_will_visit_probabilities = tuple(_temp)
+
     # Miscellaneous: locking doors -- each building in a town (objects of Business and DwellingPlace
     # subclasses) will have a 'locked' attribute specifying whether the door of that building is
     # currently locked; this could be used to prevent players from entering locked doors (and indeed

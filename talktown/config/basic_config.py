@@ -1,7 +1,7 @@
 import random
 
 
-class BasicConfig(object):
+class BasicConfig:
     """Configuration parameters related to basic aspects of the simulation."""
     # Seed for the psuedorandom number generator; if a given seed is held constant
     # across simulation instances, and if the codebase hasn't changed, the towns

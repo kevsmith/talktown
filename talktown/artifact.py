@@ -1,5 +1,5 @@
 import random
-from corpora import GravestoneDetails
+from .corpora import GravestoneDetails
 
 
 class Artifact(object):

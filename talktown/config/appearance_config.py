@@ -1,4 +1,4 @@
-class AppearanceConfig(object):
+class AppearanceConfig:
     """Configuration parameters related to character appearance."""
     # This part of the system is so fleshed out because appearance is a critical component
     # in the original framing of Talk of the Town gameplay, where two players are navigating

@@ -1,9 +1,9 @@
 import random
-from name import Name
-from person import Person
-from corpora import Names
-from residence import House
-from artifact import Gravestone
+from .name import Name
+from .person import Person
+from .corpora import Names
+from .residence import House
+from .artifact import Gravestone
 
 
 # TODO HOW TO GIVE RETCONNED EVENTS PROPERLY ORDERED EVENT NUMBERS?
@@ -451,11 +451,11 @@ class Demolition(Event):
         building.lot.building = None
         building.lot.former_buildings.append(building)
         # If this is a dwelling place, have its now-displaced residents find new housing
-        if building.__class__.__name__ is 'House':
+        if building.__class__.__name__ == 'House':
             self.town.dwelling_places.remove(building)
             if building.residents:
                 self._have_the_now_displaced_residents_move(house_or_apartment_unit=building)
-        if building.__class__.__name__ is 'ApartmentComplex':
+        if building.__class__.__name__ == 'ApartmentComplex':
             for unit in building.units:
                 self.town.dwelling_places.remove(unit)
                 if unit.residents:

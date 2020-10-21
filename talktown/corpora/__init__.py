@@ -1,43 +1,43 @@
-import os
 import pickle
 import random
 import math
+from pathlib import Path
 
 
 class Names(object):
     """A class that accesses names corpora to return random names."""
     names_by_decade = pickle.load(open(
-        os.getcwd()+'/corpora/american_names_by_decade_with_'
+        Path(__file__).parent.absolute() / 'american_names_by_decade_with_'
         'fitted_probability_distributions.dat', 'rb'
     )
     )
     miscellaneous_masculine_forenames = tuple(
         name[:-1] for name in
-        open(os.getcwd()+'/corpora/masculine_names.txt', 'r')
+        open(Path(__file__).parent.absolute() / 'masculine_names.txt', 'r')
     )
     miscellaneous_feminine_forenames = tuple(
         name[:-1] for name in
-        open(os.getcwd()+'/corpora/feminine_names.txt', 'r')
+        open(Path(__file__).parent.absolute() / 'feminine_names.txt', 'r')
     )
     english_surnames = tuple(
         name.strip('\n') for name in
-        open(os.getcwd()+'/corpora/english_surnames.txt', 'r')
+        open(Path(__file__).parent.absolute() / 'english_surnames.txt', 'r')
     )
     french_surnames = tuple(
         name.strip('\n') for name in
-        open(os.getcwd()+'/corpora/french_surnames.txt', 'r')
+        open(Path(__file__).parent.absolute() / 'french_surnames.txt', 'r')
     )
     german_surnames = tuple(
         name.strip('\n') for name in
-        open(os.getcwd()+'/corpora/german_surnames.txt', 'r')
+        open(Path(__file__).parent.absolute() / 'german_surnames.txt', 'r')
     )
     irish_surnames = tuple(
         name.strip('\n') for name in
-        open(os.getcwd()+'/corpora/irish_surnames.txt', 'r')
+        open(Path(__file__).parent.absolute() / 'irish_surnames.txt', 'r')
     )
     scandinavian_surnames = tuple(
         name.strip('\n') for name in
-        open(os.getcwd()+'/corpora/scandinavian_surnames.txt', 'r')
+        open(Path(__file__).parent.absolute() / 'scandinavian_surnames.txt', 'r')
     )
     all_surnames = (
         english_surnames + french_surnames + german_surnames +
@@ -45,15 +45,15 @@ class Names(object):
     )
     place_names = tuple(
         name.strip('\n') for name in
-        open(os.getcwd()+'/corpora/US_settlement_names.txt', 'r')
+        open(Path(__file__).parent.absolute() / 'US_settlement_names.txt', 'r')
     )
     restaurant_names = tuple(
         name.strip('\n') for name in
-        open(os.getcwd()+'/corpora/restaurant_names.txt', 'r')
+        open(Path(__file__).parent.absolute() / 'restaurant_names.txt', 'r')
     )
     bar_names = tuple(
         name.strip('\n') for name in
-        open(os.getcwd()+'/corpora/bar_names.txt', 'r')
+        open(Path(__file__).parent.absolute() / 'bar_names.txt', 'r')
     )
 
     @classmethod
@@ -253,11 +253,11 @@ class GravestoneDetails(object):
     """A class that holds variants of various gravestone details, such as inscriptions."""
     headers = tuple(
         header.strip('\n') for header in
-        open(os.getcwd()+'/corpora/gravestone_headers.txt', 'r')
+        open(Path(__file__).parent.absolute() / 'gravestone_headers.txt', 'r')
     )
     epitaphs = tuple(
         epitaph.strip('\n') for epitaph in
-        open(os.getcwd()+'/corpora/gravestone_epitaphs.txt', 'r').read().split('\n\n')
+        open(Path(__file__).parent.absolute() / 'gravestone_epitaphs.txt', 'r').read().split('\n\n')
     )
 
     @classmethod

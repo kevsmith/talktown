@@ -1,7 +1,10 @@
+import random
 import heapq
-from occupation import *
-from person import PersonExNihilo
-from residence import *
+from .occupation import Architect, Lawyer, Apprentice
+from .person import PersonExNihilo
+from .residence import DwellingPlace, House, Apartment
+from .life_event import Demolition, Hiring, BusinessClosure, BusinessConstruction
+from .corpora import Names
 
 # Objects of a business class represents both the company itself and the building
 # at which it is headquartered. All business subclasses inherit generic attributes
@@ -261,7 +264,7 @@ class Business(object):
                             owner.first_name, owner.last_name
                         )
                     elif x < 0.97:
-                        name = 'Quarry Park'.format(
+                        name = '{} Quarry Park'.format(
                             owner.last_name
                         )
                     else:
@@ -288,11 +291,11 @@ class Business(object):
                             owner.first_name, owner.last_name
                         )
                     elif x < 0.97:
-                        name = 'Coal Mine Park'.format(
+                        name = '{} Coal Mine Park'.format(
                             owner.last_name
                         )
                     elif x < 0.99:
-                        name = 'Coal Park'.format(
+                        name = '{} Coal Park'.format(
                             owner.last_name
                         )
                     else:
@@ -686,7 +689,7 @@ class ApartmentComplex(Business):
             # Make it a nice even number
             n_units_to_build -= 1
         apartment_units = []
-        for i in xrange(n_units_to_build):
+        for i in range(n_units_to_build):
             unit_number = i + 1
             apartment_units.append(
                 Apartment(apartment_complex=self, lot=self.lot, unit_number=unit_number)

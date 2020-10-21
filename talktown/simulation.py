@@ -1,10 +1,10 @@
 import sys
 import time
 import datetime
-from business import *
-from config import Config
-from town import *
-from drama import StoryRecognizer
+# from .business import *
+from .config import Config
+from .town import *
+from .drama import StoryRecognizer
 
 
 class Simulation(object):
@@ -65,19 +65,19 @@ class Simulation(object):
     def recent_events(self):
         """Pretty-print the last five simulated events (for debugging purposes)."""
         for recent_event in self.events[-5:]:
-            print recent_event
+            print(recent_event)
 
     def establish_setting(self):
         """Establish the town that will be simulated."""
         # Generate a town plan with at least two tracts
-        print "Generating a town..."
+        print("Generating a town...")
         time.sleep(0.7)
         self.town = Town(self)
         while len(self.town.tracts) < 2:
             self.town = Town(self)
         # Have families establish farms on all of the town tracts except one,
         # which will be a cemetery
-        for i in xrange(len(self.town.tracts)-2):
+        for _ in range(len(self.town.tracts)-2):
             farmer = PersonExNihilo(sim=self, job_opportunity_impetus=Farmer, spouse_already_generated=None)
             Farm(owner=farmer)
             # farmer.move_into_the_town(hiring_that_instigated_move=farmer.occupation)  # SHOULD BE ABLE TO DELETE THIS
@@ -104,9 +104,9 @@ class Simulation(object):
         # Set the town's 'settlers' attribute
         self.town.settlers = set(self.town.residents)
         # Now simulate until the specified date that worldgen ends
-        print "Simulating {n} years of history...".format(
+        print("Simulating {n} years of history...".format(
             n=self.config.date_worldgen_ends[0] - self.config.date_worldgen_begins[0]
-        )
+        ))
         time.sleep(1.2)
         n_days_until_worldgen_ends = self.ordinal_date_that_worldgen_ends - self.ordinal_date
         n_timesteps_until_worldgen_ends = n_days_until_worldgen_ends * 2
@@ -160,7 +160,7 @@ class Simulation(object):
 
     def simulate(self, n_timesteps=1):
         """Simulate activity in this town for the given number of timesteps."""
-        for i in xrange(n_timesteps):
+        for _ in range(n_timesteps):
             # Do some basic bookkeeping, regardless of whether the timestep will be simulated
             self.advance_time()
             self._progress_town_businesses()
@@ -475,9 +475,9 @@ class Simulation(object):
         if any(p for p in self.town.residents if p.name == name):
             people_named_this = [p for p in self.town.residents if p.name == name]
             if len(people_named_this) > 1:
-                print '\nWarning: Multiple {} residents are named {}; returning a complete list\n'.format(
+                print('\nWarning: Multiple {} residents are named {}; returning a complete list\n'.format(
                     self.town.name, name
-                )
+                ))
                 return people_named_this
             else:
                 return people_named_this[0]
@@ -489,14 +489,14 @@ class Simulation(object):
         if any(p for p in self.town.deceased if p.name == name):
             people_named_this = [p for p in self.town.deceased if p.name == name]
             if len(people_named_this) > 1:
-                print '\nWarning: Multiple {} residents are named {}; returning a complete list\n'.format(
+                print('\nWarning: Multiple {} residents are named {}; returning a complete list\n'.format(
                     self.town.name, name
-                )
+                ))
                 return people_named_this
             else:
                 return people_named_this[0]
         else:
-            raise Exception('There is no one named {} who died in {]'.format(name, self.town.name))
+            raise Exception('There is no one named {} who died in {}'.format(name, self.town.name))
 
     def find_by_hex(self, hex_value):
         """Return person whose ID in memory has the given hex value."""

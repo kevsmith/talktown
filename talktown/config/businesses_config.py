@@ -1,0 +1,811 @@
+from .. import business
+from .. import occupation
+
+
+class BusinessesConfig:
+    """Configuration parameters related to businesses."""
+    # Company naming
+    chance_company_gets_named_after_owner = 0.5
+    # Companies deciding where to locate themselves
+    function_to_determine_company_preference_for_local_population = (
+        # This specifies how strongly companies are compelled to purchase lots near
+        # densely populated areas of town
+        lambda secondary_pop, tertiary_pop: (secondary_pop * 5) + (tertiary_pop * 2)
+    )
+    function_to_determine_company_penalty_for_nearby_company_of_same_type = (
+        # This is jury-rigged so that being within a few blocks of another company of the
+        # same type will cancel out a relatively huge local population
+        lambda dist_to_nearest_company_of_same_type: min(
+            (((100 - dist_to_nearest_company_of_same_type) ** 0.5) - 8) ** 10,
+            0)
+    )
+    # Company types that are public resources, i.e., not privately owned
+    public_company_types = (business.CityHall, business.FireStation, business.Hospital, business.PoliceStation, business.School, business.University, business.Cemetery, business.Park)
+    public_places_closed_at_night = (business.Cemetery, business.Park)
+    # Company types that get established on tracts, not on lots
+    companies_that_get_established_on_tracts = (
+        business.Cemetery, business.Park, business.Farm, business.Quarry, business.CoalMine
+    )
+    # Businesses (besides farms, which exist by default) at the time of a town being founded
+    chance_of_a_coal_mine_at_time_of_town_founding = 0.2
+    chance_of_a_quarry_at_time_of_town_founding = 0.15
+    # Number of units in apartment complexes
+    number_of_apartment_units_in_new_complex_min = 4
+    number_of_apartment_units_in_new_complex_max = 16
+    # This dictionary specifies three things about each business type: the year
+    # at which it may be established in the simulation (its advent), the year at
+    # which its closure will become highly likely (its demise), and the minimum
+    # population that must live in the town in order for a business of this type
+    # to be established; these are specified so that businesses don't appear
+    # anachronistically or otherwise out of place
+    business_types_advent_demise_and_minimum_population = {
+        # Business class: (advent, demise, minimum population)
+        business.ApartmentComplex: (1880, 9999, 50),
+        business.Bakery: (0, 9999, 50),
+        business.Bank: (0, 9999, 100),
+        business.Bar: (1920, 9999, 100),
+        business.Barbershop: (0, 9999, 50),
+        business.BlacksmithShop: (0, 1945, 0),
+        business.Brewery: (0, 9999, 0),
+        business.BusDepot: (1930, 9999, 9999),
+        business.ButcherShop: (0, 1960, 50),
+        business.CandyStore: (0, 1960, 100),
+        business.CarpentryCompany: (0, 9999, 70),
+        business.Cemetery: (0, 9999, 1),
+        business.CityHall: (0, 9999, 100),
+        business.ClothingStore: (0, 1880, 100),
+        business.CoalMine: (0, 9999, 0),
+        business.ConstructionFirm: (0, 9999, 80),
+        business.Dairy: (0, 1945, 30),
+        business.DayCare: (1950, 9999, 200),
+        business.Deli: (1880, 9999, 100),
+        business.DentistOffice: (0, 9999, 75),
+        business.DepartmentStore: (1880, 9999, 200),
+        business.Diner: (1945, 9999, 30),
+        business.Distillery: (0, 1919, 0),
+        business.DrugStore: (0, 1950, 30),
+        business.Farm: (0, 1920, 0),
+        business.FireStation: (0, 9999, 100),
+        business.Foundry: (1830, 1950, 100),
+        business.FurnitureStore: (0, 1930, 20),
+        business.GeneralStore: (0, 1930, 20),
+        business.GroceryStore: (0, 1950, 20),
+        business.HardwareStore: (0, 9999, 40),
+        business.Hospital: (0, 9999, 200),
+        business.Hotel: (0, 9999, 50),
+        business.Inn: (0, 9999, 0),
+        business.InsuranceCompany: (0, 9999, 200),
+        business.JeweleryShop: (0, 9999, 200),
+        business.LawFirm: (0, 9999, 150),
+        business.OptometryClinic: (1900, 9999, 200),
+        business.PaintingCompany: (0, 9999, 100),
+        business.Park: (0, 9999, 100),
+        business.Pharmacy: (1960, 9999, 200),
+        business.PlasticSurgeryClinic: (1970, 9999, 9999),
+        business.PlumbingCompany: (0, 9999, 100),
+        business.PoliceStation: (0, 9999, 100),
+        business.Quarry: (0, 9999, 0),
+        business.RealtyFirm: (0, 9999, 80),
+        business.Restaurant: (0, 9999, 50),
+        business.School: (0, 9999, 1),
+        business.ShoemakerShop: (0, 1900, 20),
+        business.Supermarket: (1945, 9999, 200),
+        business.TailorShop: (0, 9999, 40),
+        business.TattooParlor: (1970, 9999, 300),
+        business.Tavern: (0, 1920, 20),
+        business.TaxiDepot: (1930, 9999, 9999),
+        business.University: (0, 9999, 9999),
+    }
+    # Chance a business shuts downs ome timestep after its specified demise -- i.e., chance a business
+    # will shut down once its anachronistic, like a blacksmith shop after 1945
+    chance_a_business_shuts_down_on_timestep_after_its_demise = (1 / 730.) / 3  # Average will last 3 years
+    # Max number of businesses of each type that may be in a town at the same time; this
+    # won't cause businesses to shut down, but rather will prevent new businesses of a
+    # maxed-out type from opening
+    max_number_of_business_types_at_one_time = {
+        business.ApartmentComplex: 99,
+        business.Bakery: 2,
+        business.Bank: 2,
+        business.Bar: 3,
+        business.Barbershop: 1,
+        business.BlacksmithShop: 1,
+        business.Brewery: 1,
+        business.BusDepot: 1,
+        business.ButcherShop: 2,
+        business.CandyStore: 1,
+        business.CarpentryCompany: 1,
+        business.Cemetery: 1,
+        business.CityHall: 1,
+        business.ClothingStore: 2,
+        business.CoalMine: 1,
+        business.ConstructionFirm: 1,
+        business.Dairy: 1,
+        business.DayCare: 1,
+        business.Deli: 2,
+        business.DentistOffice: 1,
+        business.DepartmentStore: 1,
+        business.Diner: 3,
+        business.Distillery: 1,
+        business.DrugStore: 1,
+        business.Farm: 99,
+        business.FireStation: 1,
+        business.Foundry: 1,
+        business.FurnitureStore: 1,
+        business.GeneralStore: 1,
+        business.GroceryStore: 2,
+        business.HardwareStore: 1,
+        business.Hospital: 1,
+        business.Hotel: 1,
+        business.Inn: 2,
+        business.InsuranceCompany: 1,
+        business.JeweleryShop: 1,
+        business.LawFirm: 1,
+        business.OptometryClinic: 1,
+        business.PaintingCompany: 1,
+        business.Park: 99,
+        business.Pharmacy: 1,
+        business.PlasticSurgeryClinic: 1,
+        business.PlumbingCompany: 2,
+        business.PoliceStation: 1,
+        business.Quarry: 1,
+        business.RealtyFirm: 1,
+        business.Restaurant: 5,
+        business.School: 1,
+        business.ShoemakerShop: 1,
+        business.Supermarket: 1,
+        business.TailorShop: 1,
+        business.TattooParlor: 1,
+        business.Tavern: 2,
+        business.TaxiDepot: 1,
+        business.University: 1,
+    }
+    # Services provided by each business type -- used to drive reasoning behind character routines
+    services_provided_by_business_of_type = {
+        business.ApartmentComplex: (),
+        business.Bakery: ('baked goods',),
+        business.Bank: ('banking',),
+        business.Bar: ('bar',),
+        business.Barbershop: ('haircut',),
+        business.BlacksmithShop: ('tools',),
+        business.Brewery: (),
+        business.BusDepot: ('transport',),
+        business.ButcherShop: ('meat',),
+        business.CandyStore: ('confections',),
+        business.CarpentryCompany: (),  # MAYBE RANDOMLY HAVE PLUMBERS, ETC. VISIT HOMES AND BE THERE ON TIMESTEP
+        business.Cemetery: ('business.Cemetery',),
+        business.CityHall: (),
+        business.ClothingStore: ('clothes',),
+        business.CoalMine: (),
+        business.ConstructionFirm: (),
+        business.Dairy: ('dairy',),
+        business.DayCare: (),
+        business.Deli: ('restaurant',),
+        business.DentistOffice: ('dentist',),
+        business.DepartmentStore: ('clothes', 'furniture', 'tools', 'confections', 'shoes'),
+        business.Diner: ('restaurant',),
+        business.Distillery: (),
+        business.DrugStore: ('medicine', 'confections'),
+        business.Farm: ('meat', 'dairy'),
+        business.FireStation: (),
+        business.Foundry: (),
+        business.FurnitureStore: ('furniture',),
+        business.GeneralStore: ('clothes', 'furniture', 'tools', 'confections'),
+        business.GroceryStore: ('baked goods', 'meat', 'confections', 'dairy'),
+        business.HardwareStore: ('tools',),
+        business.Hospital: (),
+        business.Hotel: ('restaurant', 'bar',),
+        business.Inn: (),
+        business.InsuranceCompany: ('insurance',),
+        business.JeweleryShop: ('jewelry',),
+        business.LawFirm: (),
+        business.OptometryClinic: ('eyeglasses',),
+        business.PaintingCompany: (),
+        business.Park: ('business.Park',),
+        business.Pharmacy: ('medicine',),
+        business.PlasticSurgeryClinic: ('plastic surgery',),
+        business.PlumbingCompany: (),
+        business.PoliceStation: (),
+        business.Quarry: (),
+        business.RealtyFirm: (),
+        business.Restaurant: ('restaurant',),
+        business.School: (),
+        business.ShoemakerShop: ('shoes',),
+        business.Supermarket: ('baked goods', 'meat', 'confections', 'medicine', 'dairy'),
+        business.TailorShop: ('clothes',),
+        business.TattooParlor: ('tattoo',),
+        business.Tavern: ('bar', 'restaurant'),
+        business.TaxiDepot: ('transport',),
+        business.University: (),
+    }
+    # Occupation classes for owners/proprietors of each business type
+    owner_occupations_for_each_business_type = {
+        business.ApartmentComplex: occupation.Landlord,
+        business.Bakery: occupation.Baker,
+        business.Bank: occupation.Owner,
+        business.Bar: occupation.Proprietor,
+        business.Barbershop: occupation.Barber,
+        business.BlacksmithShop: occupation.Blacksmith,
+        business.Brewery: occupation.Owner,
+        business.BusDepot: None,
+        business.ButcherShop: occupation.Butcher,
+        business.CandyStore: occupation.Proprietor,
+        business.CarpentryCompany: occupation.Carpenter,
+        business.Cemetery: None,
+        business.CityHall: None,
+        business.ClothingStore: occupation.Clothier,
+        business.CoalMine: occupation.Owner,
+        business.ConstructionFirm: occupation.Architect,
+        business.Dairy: occupation.Milkman,
+        business.DayCare: occupation.DaycareProvider,
+        business.Deli: occupation.Proprietor,
+        business.DentistOffice: occupation.Dentist,
+        business.DepartmentStore: occupation.Owner,
+        business.Diner: occupation.Proprietor,
+        business.Distillery: occupation.Distiller,
+        business.DrugStore: occupation.Druggist,
+        business.Farm: occupation.Farmer,
+        business.FireStation: None,
+        business.Foundry: occupation.Owner,
+        business.FurnitureStore: occupation.Woodworker,
+        business.GeneralStore: occupation.Proprietor,
+        business.GroceryStore: occupation.Grocer,
+        business.HardwareStore: occupation.Proprietor,
+        business.Hospital: None,
+        business.Hotel: occupation.Owner,
+        business.Inn: occupation.Innkeeper,
+        business.InsuranceCompany: occupation.InsuranceAgent,
+        business.JeweleryShop: occupation.Jeweler,
+        business.LawFirm: occupation.Lawyer,
+        business.OptometryClinic: occupation.Optometrist,
+        business.PaintingCompany: occupation.Plasterer,
+        business.Park: None,
+        business.Pharmacy: occupation.Owner,
+        business.PlasticSurgeryClinic: occupation.PlasticSurgeon,
+        business.PlumbingCompany: occupation.Plumber,
+        business.PoliceStation: None,
+        business.Quarry: occupation.Owner,
+        business.RealtyFirm: occupation.Realtor,
+        business.Restaurant: occupation.Proprietor,
+        business.School: None,
+        business.ShoemakerShop: occupation.Shoemaker,
+        business.Supermarket: occupation.Owner,
+        business.TailorShop: occupation.Tailor,
+        business.TattooParlor: occupation.TattooArtist,
+        business.Tavern: occupation.Proprietor,
+        business.TaxiDepot: occupation.Owner,
+        business.University: None,
+    }
+    # Initial vacant positions for each business type
+    initial_job_vacancies = {
+        business.ApartmentComplex: {
+            'day': (),
+            'night': (occupation.Janitor,),
+            'supplemental day': [occupation.Secretary, occupation.Janitor],
+            'supplemental night': [],
+        },
+        business.Bank: {
+            'day': (occupation.BankTeller,),
+            'night': (occupation.Janitor,),
+            'supplemental day': [occupation.BankTeller, occupation.BankTeller, occupation.Manager],
+            'supplemental night': [],
+        },
+        business.Bar: {
+            'day': (occupation.Bartender,),
+            'night': (occupation.Bartender,),
+            'supplemental day': [],
+            'supplemental night': [occupation.Bartender, occupation.Bartender, occupation.Manager],
+        },
+        business.Barbershop: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Cashier],
+            'supplemental night': [],
+        },
+        business.BusDepot: {
+            'day': (occupation.Secretary, occupation.BusDriver, occupation.Manager),
+            'night': (occupation.BusDriver,),
+            'supplemental day': [occupation.BusDriver],
+            'supplemental night': [],
+        },
+        business.CityHall: {
+            'day': (occupation.Secretary,),  # Mayor excluded due to special hiring process
+            'night': (),
+            'supplemental day': [occupation.Secretary],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.ConstructionFirm: {
+            'day': (occupation.Secretary, occupation.Bricklayer, occupation.Builder),
+            'night': (),
+            'supplemental day': [occupation.Builder, occupation.Builder],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.DayCare: {
+            'day': (),
+            'night': (occupation.Janitor,),
+            'supplemental day': [occupation.DaycareProvider, occupation.DaycareProvider],
+            'supplemental night': [],
+        },
+        business.FireStation: {
+            'day': (occupation.Firefighter,),
+            'night': (occupation.Firefighter,),
+            'supplemental day': [occupation.FireChief, occupation.Secretary],
+            'supplemental night': [occupation.Firefighter],
+        },
+        business.Hospital: {
+            'day': (occupation.Secretary, occupation.Nurse, occupation.Doctor),
+            'night': (occupation.Nurse, occupation.Doctor, occupation.Janitor),
+            'supplemental day': [occupation.Nurse],
+            'supplemental night': [occupation.Secretary, occupation.Nurse],
+        },
+        business.Hotel: {
+            'day': (occupation.HotelMaid, occupation.Concierge),
+            'night': (occupation.Concierge,),
+            'supplemental day': [occupation.Manager, occupation.HotelMaid],
+            'supplemental night': [],
+        },
+        business.LawFirm: {
+            'day': (occupation.Secretary,),
+            'night': (),
+            'supplemental day': [occupation.Lawyer, occupation.Lawyer, occupation.Secretary, occupation.Lawyer],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.OptometryClinic: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Secretary, occupation.Nurse],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.PlasticSurgeryClinic: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Secretary, occupation.Nurse],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.PoliceStation: {
+            'day': (occupation.PoliceOfficer,),
+            'night': (occupation.PoliceOfficer,),
+            'supplemental day': [occupation.Secretary, occupation.PoliceChief],
+            'supplemental night': [occupation.PoliceOfficer],
+        },
+        business.RealtyFirm: {
+            'day': (occupation.Secretary,),
+            'night': (),
+            'supplemental day': [occupation.Realtor, occupation.Realtor],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.Restaurant: {
+            'day': (occupation.Waiter, occupation.Cook),
+            'night': (occupation.Waiter, occupation.Cook),
+            'supplemental day': [occupation.Busboy, occupation.Waiter, occupation.Manager, occupation.Dishwasher],
+            'supplemental night': [occupation.Busboy, occupation.Waiter, occupation.Manager, occupation.Dishwasher],
+        },
+        business.School: {
+            'day': (occupation.Janitor, occupation.Teacher, occupation.Teacher, occupation.Nurse, occupation.Principal),
+            'night': (occupation.Janitor,),
+            'supplemental day': [occupation.Teacher],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.Supermarket: {
+            'day': (occupation.Cashier, occupation.Stocker, occupation.Manager),
+            'night': (occupation.Stocker, occupation.Stocker),
+            'supplemental day': [occupation.Cashier, occupation.Cashier, occupation.Stocker],
+            'supplemental night': [occupation.Stocker],
+        },
+        business.TattooParlor: {
+            'day': (),
+            'night': (occupation.TattooArtist,),
+            'supplemental day': [],
+            'supplemental night': [occupation.Cashier],
+        },
+        business.TaxiDepot: {
+            'day': (occupation.TaxiDriver,),
+            'night': (occupation.TaxiDriver,),
+            'supplemental day': [],
+            'supplemental night': [occupation.TaxiDriver, occupation.Manager],
+        },
+        business.University: {
+            'day': (occupation.Professor, occupation.Professor),
+            'night': (occupation.Janitor,),
+            'supplemental day': [occupation.Professor],
+            'supplemental night': [occupation.Professor],
+        },
+        business.Cemetery: {
+            'day': (occupation.Mortician,),
+            'night': (occupation.Groundskeeper,),
+            'supplemental day': [],
+            'supplemental night': [],
+        },
+        business.Park: {
+            'day': (occupation.Groundskeeper,),
+            'night': (),
+            'supplemental day': [occupation.Groundskeeper, occupation.Manager],
+            'supplemental night': [],
+        },
+        # New businesses added after the above (hence two alphabetical sortings)
+        business.Bakery: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Cashier],
+            'supplemental night': [occupation.Cashier],
+        },
+        business.BlacksmithShop: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Apprentice],
+            'supplemental night': [],
+        },
+        business.Brewery: {
+            'day': (occupation.Brewer, occupation.Bottler, occupation.Cooper),
+            'night': (),
+            'supplemental day': [occupation.Brewer, occupation.Bottler, occupation.Bottler, occupation.Cooper],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.ButcherShop: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Cashier, occupation.Butcher],
+            'supplemental night': [occupation.Cashier],
+        },
+        business.CandyStore: {
+            'day': (occupation.Cashier,),
+            'night': (),
+            'supplemental day': [occupation.Cashier],
+            'supplemental night': [occupation.Cashier],
+        },
+        business.CarpentryCompany: {
+            'day': (occupation.Woodworker,),
+            'night': (),
+            'supplemental day': [occupation.Turner, occupation.Joiner, occupation.Secretary],
+            'supplemental night': [],
+        },
+        business.ClothingStore: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Dressmaker, occupation.Seamstress],
+            'supplemental night': [],
+        },
+        business.Dairy: {
+            'day': (occupation.Bottler,),
+            'night': (),
+            'supplemental day': [occupation.Bottler],
+            'supplemental night': [occupation.Bottler],
+        },
+        business.Deli: {
+            'day': (occupation.Cook, occupation.Cashier),
+            'night': (occupation.Cook, occupation.Cashier),
+            'supplemental day': [occupation.Dishwasher],
+            'supplemental night': [occupation.Dishwasher],
+        },
+        business.DentistOffice: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Secretary, occupation.Dentist],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.DepartmentStore: {
+            'day': (occupation.Cashier, occupation.Stocker, occupation.Manager),
+            'night': (occupation.Stocker, occupation.Stocker, occupation.Janitor),
+            'supplemental day': [occupation.Cashier, occupation.Cashier, occupation.Stocker],
+            'supplemental night': [occupation.Stocker, occupation.Stocker, occupation.Janitor],
+        },
+        business.Diner: {
+            'day': (occupation.Cook,),
+            'night': (occupation.Cook, occupation.Waiter),
+            'supplemental day': [occupation.Dishwasher],
+            'supplemental night': [occupation.Dishwasher],
+        },
+        business.Distillery: {
+            'day': (occupation.Distiller, occupation.Bottler, occupation.Cooper),
+            'night': (),
+            'supplemental day': [occupation.Bottler, occupation.Bottler, occupation.Cooper],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.DrugStore: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Cashier],
+            'supplemental night': [],
+        },
+        business.Farm: {
+            'day': (occupation.Farmhand,),
+            'night': (),
+            'supplemental day': [occupation.Farmhand, occupation.Farmhand],
+            'supplemental night': [],
+        },
+        business.Foundry: {
+            'day': (occupation.Molder, occupation.Puddler),
+            'night': (),
+            'supplemental day': [occupation.Molder, occupation.Molder],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.FurnitureStore: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Apprentice, occupation.Cashier, occupation.Woodworker],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.GeneralStore: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Cashier, occupation.Stocker],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.GroceryStore: {
+            'day': (occupation.Stocker,),
+            'night': (),
+            'supplemental day': [occupation.Cashier],
+            'supplemental night': [occupation.Stocker, occupation.Janitor],
+        },
+        business.HardwareStore: {
+            'day': (occupation.Stocker,),
+            'night': (),
+            'supplemental day': [],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.Inn: {
+            'day': (),
+            'night': (occupation.Innkeeper,),
+            'supplemental day': [occupation.Concierge],
+            'supplemental night': [],
+        },
+        business.Tavern: {
+            'day': (occupation.Bartender,),
+            'night': (occupation.Bartender,),
+            'supplemental day': [],
+            'supplemental night': [occupation.Bartender],
+        },
+        business.InsuranceCompany: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Secretary, occupation.InsuranceAgent, occupation.InsuranceAgent],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.JeweleryShop: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Cashier],
+            'supplemental night': [],
+        },
+        business.PaintingCompany: {
+            'day': (occupation.Painter, occupation.Whitewasher),
+            'night': (),
+            'supplemental day': [occupation.Painter],
+            'supplemental night': [],
+        },
+        business.Pharmacy: {
+            'day': (occupation.Pharmacist, occupation.Cashier),
+            'night': (),
+            'supplemental day': [],
+            'supplemental night': [occupation.Janitor],
+        },
+        business.PlumbingCompany: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Secretary, occupation.Plumber],
+            'supplemental night': [],
+        },
+        business.Quarry: {
+            'day': (occupation.Quarryman, occupation.Stonecutter, occupation.Laborer, occupation.Laborer, occupation.Engineer),
+            'night': (),
+            'supplemental day': [occupation.Laborer] * 100,  # Endlessly hiring more laborers if someone needs a job
+            'supplemental night': [],
+        },
+        business.CoalMine: {
+            'day': (occupation.Miner, occupation.Miner, occupation.Engineer),
+            'night': (occupation.Miner, occupation.Miner, occupation.Miner),
+            'supplemental day': [occupation.Miner] * 100,  # Endlessly hiring more miners if someone needs a job
+            'supplemental night': [occupation.Miner] * 100,
+        },
+        business.ShoemakerShop: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Apprentice],
+            'supplemental night': [],
+        },
+        business.TailorShop: {
+            'day': (),
+            'night': (),
+            'supplemental day': [occupation.Apprentice],
+            'supplemental night': [],
+        },
+    }
+    # Occupations for which a college degree is required
+    occupations_requiring_college_degree = {
+        occupation.Doctor, occupation.Architect, occupation.Optometrist, occupation.PlasticSurgeon, occupation.Lawyer, occupation.Professor, occupation.Pharmacist, occupation.Dentist
+    }
+    # Job levels of various occupations (indexed by their class names)
+    job_levels = {
+        None: 0,  # Unemployed
+        occupation.Apprentice: 1,
+        occupation.Cashier: 1,
+        occupation.Janitor: 1,
+        occupation.Builder: 1,
+        occupation.HotelMaid: 1,
+        occupation.Waiter: 1,
+        occupation.Secretary: 1,
+        occupation.Laborer: 1,
+        occupation.Groundskeeper: 1,
+        occupation.Whitewasher: 1,
+        occupation.Bottler: 1,
+        occupation.Bricklayer: 1,
+        occupation.Cook: 1,
+        occupation.Dishwasher: 1,
+        occupation.Busboy: 1,
+        occupation.Stocker: 1,
+        occupation.Seamstress: 1,
+        occupation.Farmhand: 1,
+        occupation.Miner: 1,
+        occupation.Painter: 1,
+        occupation.BankTeller: 2,
+        occupation.Grocer: 2,
+        occupation.Bartender: 2,
+        occupation.Concierge: 2,
+        occupation.DaycareProvider: 2,
+        occupation.Landlord: 2,
+        occupation.Baker: 2,
+        occupation.Cooper: 2,
+        occupation.Barkeeper: 2,
+        occupation.Milkman: 2,
+        occupation.Plasterer: 2,
+        occupation.Barber: 2,
+        occupation.Butcher: 2,
+        occupation.Firefighter: 2,
+        occupation.PoliceOfficer: 2,
+        occupation.Carpenter: 2,
+        occupation.TaxiDriver: 2,
+        occupation.BusDriver: 2,
+        occupation.Blacksmith: 2,
+        occupation.Woodworker: 2,
+        occupation.Stonecutter: 2,
+        occupation.Dressmaker: 2,
+        occupation.Distiller: 2,
+        occupation.Plumber: 2,
+        occupation.Joiner: 2,
+        occupation.Innkeeper: 2,
+        occupation.Nurse: 2,
+        occupation.Farmer: 2,
+        occupation.Shoemaker: 2,
+        occupation.Brewer: 2,
+        occupation.TattooArtist: 2,
+        occupation.Puddler: 2,
+        occupation.Clothier: 2,
+        occupation.Teacher: 2,
+        occupation.Tailor: 2,
+        occupation.Molder: 2,
+        occupation.Turner: 2,
+        occupation.Quarryman: 2,
+        occupation.Proprietor: 2,
+        occupation.Manager: 2,
+        occupation.Druggist: 3,
+        occupation.InsuranceAgent: 3,
+        occupation.Jeweler: 3,
+        occupation.FireChief: 3,
+        occupation.PoliceChief: 3,
+        occupation.Realtor: 3,
+        occupation.Principal: 3,
+        occupation.Mortician: 3,
+        occupation.Doctor: 4,
+        occupation.Engineer: 4,
+        occupation.Pharmacist: 4,
+        occupation.Architect: 4,
+        occupation.Optometrist: 4,
+        occupation.Dentist: 4,
+        occupation.PlasticSurgeon: 4,
+        occupation.Lawyer: 4,
+        occupation.Professor: 4,
+        occupation.Owner: 5,
+        occupation.Mayor: 5,
+    }
+    # Preconditions to various occupations that enforce historical accuracy with
+    # regard to gender and occupation (to preclude anachronisms, which of course
+    # may not be an issue in many projects)
+    employable_as_a = {
+        occupation.Apprentice: lambda applicant: applicant.male,
+        occupation.Cashier: lambda applicant: applicant.male if applicant.sim.year < 1917 else True,
+        occupation.Janitor: lambda applicant: applicant.male if applicant.sim.year < 1966 else True,
+        occupation.Builder: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.HotelMaid: lambda applicant: applicant.female,
+        occupation.Waiter: lambda applicant: applicant.male if applicant.sim.year < 1917 else True,
+        occupation.Secretary: lambda applicant: applicant.female,
+        occupation.Laborer: lambda applicant: applicant.male,
+        occupation.Groundskeeper: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Whitewasher: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Bottler: lambda applicant: applicant.male if applicant.sim.year < 1943 else True,
+        occupation.Bricklayer: lambda applicant: applicant.male,
+        occupation.Cook: lambda applicant: applicant.male if applicant.sim.year < 1966 else True,
+        occupation.Dishwasher: lambda applicant: applicant.male if applicant.sim.year < 1966 else True,
+        occupation.Busboy: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Stocker: lambda applicant: applicant.male if applicant.sim.year < 1943 else True,
+        occupation.Seamstress: lambda applicant: applicant.female,
+        occupation.Farmhand: lambda applicant: applicant.male,
+        occupation.Miner: lambda applicant: applicant.male,
+        occupation.Painter: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.BankTeller: lambda applicant: applicant.male if applicant.sim.year < 1950 else True,
+        occupation.Grocer: lambda applicant: applicant.male if applicant.sim.year < 1966 else True,
+        occupation.Bartender: lambda applicant: applicant.male if applicant.sim.year < 1968 else True,
+        occupation.Concierge: lambda applicant: applicant.male if applicant.sim.year < 1968 else True,
+        occupation.DaycareProvider: lambda applicant: applicant.female if applicant.sim.year < 1977 else True,
+        occupation.Landlord: lambda applicant: applicant.male if applicant.sim.year < 1925 else True,
+        occupation.Baker: lambda applicant: applicant.male if applicant.sim.year < 1935 else True,
+        occupation.Cooper: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Barkeeper: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Milkman: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Plasterer: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Barber: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Butcher: lambda applicant: applicant.male,
+        occupation.Firefighter: lambda applicant: applicant.male,
+        occupation.PoliceOfficer: lambda applicant: applicant.male,
+        occupation.Carpenter: lambda applicant: applicant.male,
+        occupation.TaxiDriver: lambda applicant: applicant.male,
+        occupation.BusDriver: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
+        occupation.Blacksmith: lambda applicant: applicant.male,
+        occupation.Woodworker: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Stonecutter: lambda applicant: applicant.male,
+        occupation.Dressmaker: lambda applicant: applicant.female if applicant.sim.year < 1977 else True,
+        occupation.Distiller: lambda applicant: applicant.male,
+        occupation.Plumber: lambda applicant: applicant.male,
+        occupation.Joiner: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Innkeeper: lambda applicant: applicant.male if applicant.sim.year < 1928 else True,
+        occupation.Nurse: lambda applicant: applicant.female if applicant.sim.year < 1977 else True,
+        occupation.Farmer: lambda applicant: applicant.male,
+        occupation.Shoemaker: lambda applicant: applicant.male if applicant.sim.year < 1960 else True,
+        occupation.Brewer: lambda applicant: applicant.male,
+        occupation.TattooArtist: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
+        occupation.Puddler: lambda applicant: applicant.male,
+        occupation.Clothier: lambda applicant: applicant.male if applicant.sim.year < 1930 else True,
+        occupation.Teacher: lambda applicant: applicant.female if applicant.sim.year < 1955 else True,
+        occupation.Principal: lambda applicant: (
+            applicant.male if applicant.sim.year < 1965 else True and
+                                                              any(o for o in applicant.occupations if
+                                                                  o.__class__ is occupation.Teacher)
+        ),
+        occupation.Tailor: lambda applicant: applicant.male if applicant.sim.year < 1955 else True,
+        occupation.Molder: lambda applicant: applicant.male,
+        occupation.Turner: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Quarryman: lambda applicant: applicant.male,
+        occupation.Proprietor: lambda applicant: applicant.male if applicant.sim.year < 1955 else True,
+        occupation.Manager: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
+        occupation.Druggist: lambda applicant: applicant.male,
+        occupation.InsuranceAgent: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
+        occupation.Jeweler: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
+        occupation.FireChief: lambda applicant: (
+            applicant.male and any(o for o in applicant.occupations if o.__class__ is occupation.Firefighter)
+        ),
+        occupation.PoliceChief: lambda applicant: (
+            applicant.male and any(o for o in applicant.occupations if o.__class__ is occupation.PoliceOfficer)
+        ),
+        occupation.Realtor: lambda applicant: applicant.male if applicant.sim.year < 1966 else True,
+        occupation.Mortician: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Doctor: lambda applicant: (
+            applicant.male if applicant.sim.year < 1972 else True and
+                                                              not applicant.occupations
+        ),
+        occupation.Engineer: lambda applicant: (
+            applicant.male if applicant.sim.year < 1977 else True and
+                                                              not applicant.occupations
+        ),
+        occupation.Pharmacist: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
+        occupation.Architect: lambda applicant: (
+            applicant.male if applicant.sim.year < 1977 else True and
+                                                              not applicant.occupations
+        ),
+        occupation.Optometrist: lambda applicant: (
+            applicant.male if applicant.sim.year < 1972 else True and
+                                                              not applicant.occupations
+        ),
+        occupation.Dentist: lambda applicant: (
+            applicant.male if applicant.sim.year < 1972 else True and
+                                                              not applicant.occupations
+        ),
+        occupation.PlasticSurgeon: lambda applicant: (
+            applicant.male if applicant.sim.year < 1977 else True and
+                                                              not applicant.occupations
+        ),
+        occupation.Lawyer: lambda applicant: (
+            applicant.male if applicant.sim.year < 1977 else True and
+                                                              not applicant.occupations
+        ),
+        occupation.Professor: lambda applicant: applicant.male if applicant.sim.year < 1962 else True,
+        occupation.Owner: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Mayor: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+    }

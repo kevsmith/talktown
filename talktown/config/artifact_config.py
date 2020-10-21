@@ -1,4 +1,4 @@
-class ArtifactConfig(object):
+class ArtifactConfig:
     """Configuration parameters related to artifacts."""
     # Artifacts represent a system that I've been wanting to develop but haven't had a chance
     # to; currently, the only real example of this is character gravestones, which are

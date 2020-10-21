@@ -20,21 +20,21 @@ class StoryRecognizer(object):
     def excavate(self):
         """Excavate and record nuggets of dramatic intrigue."""
         self.unrequited_love_cases = self._excavate_unrequited_love_cases()
-        print "\tFound {n} cases of unrequited love".format(n=len(self.unrequited_love_cases))
+        print("\tFound {n} cases of unrequited love".format(n=len(self.unrequited_love_cases)))
         self.love_triangles = self._excavate_love_triangles()
-        print "\tFound {n} love triangles".format(n=len(self.love_triangles))
+        print("\tFound {n} love triangles".format(n=len(self.love_triangles)))
         self.extramarital_romantic_interests = self._excavate_extramarital_romantic_interests()
-        print "\tFound {n} cases of extramarital romantic interest".format(n=len(self.extramarital_romantic_interests))
+        print("\tFound {n} cases of extramarital romantic interest".format(n=len(self.extramarital_romantic_interests)))
         self.asymmetric_friendships = self._excavate_asymmetric_friendships()
-        print "\tFound {n} asymmetric friendships".format(n=len(self.asymmetric_friendships))
+        print("\tFound {n} asymmetric friendships".format(n=len(self.asymmetric_friendships)))
         self.misanthropes = self._excavate_misanthropes()
-        print "\tFound {n} misanthropes".format(n=len(self.misanthropes))
+        print("\tFound {n} misanthropes".format(n=len(self.misanthropes)))
         self.rivalries = self._excavate_rivalries()
-        print "\tFound {n} character rivalries".format(n=len(self.rivalries))
+        print("\tFound {n} character rivalries".format(n=len(self.rivalries)))
         self.sibling_rivalries = self._excavate_sibling_rivalries()
-        print "\tFound {n} sibling rivalries".format(n=len(self.sibling_rivalries))
+        print("\tFound {n} sibling rivalries".format(n=len(self.sibling_rivalries)))
         self.business_owner_rivalries = self._excavate_business_owner_rivalries()
-        print "\tFound {n} business-owner rivalries".format(n=len(self.business_owner_rivalries))
+        print("\tFound {n} business-owner rivalries".format(n=len(self.business_owner_rivalries)))
 
     def _excavate_unrequited_love_cases(self):
         """Recognize cases where one character's love for another is not reciprocated."""

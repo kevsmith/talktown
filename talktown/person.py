@@ -1,19 +1,18 @@
 import random
 import heapq
-from corpora import Names
-import life_event
-from name import Name
-from personality import Personality
-import occupation
-from face import Face
-from mind import Mind
-from routine import Routine
-from whereabouts import Whereabouts
-from relationship import Acquaintance
-import face
+from .corpora import Names
+from . import life_event
+from .name import Name
+from .personality import Personality
+from . import occupation
+from .face import Face
+from .mind import Mind
+from .routine import Routine
+from .whereabouts import Whereabouts
+from .relationship import Acquaintance
+from . import face
 
-
-class Person(object):
+class Person:
     """A person living in a procedurally generated American small town."""
 
     def __init__(self, sim, birth):
@@ -211,6 +210,10 @@ class Person(object):
             return "{}, left town in {}".format(self.name, self.departure.year)
         else:
             return "{}, {}-{}".format(self.name, self.birth_year, self.death_year)
+
+    def __gt__(self, other):
+        """Greater than"""
+        return self.id > other.id
 
     @staticmethod
     def _init_fertility(male, config):
@@ -670,7 +673,7 @@ class Person(object):
             prominent_features=self.basic_appearance_description,
             deceased=' (deceased)' if self.dead else ''
         )
-    
+
     @property
     def boss(self):
         """Return this person's boss, if they have one, else None."""
@@ -706,7 +709,7 @@ class Person(object):
     def recount_life_history(self):
         """Print out the major life events in this person's simulated life."""
         for life_event in self.life_events:
-            print life_event
+            print(life_event)
 
     def get_feature(self, feature_type):
         """Return this person's feature of the given type."""
@@ -2150,7 +2153,7 @@ class PersonExNihilo(Person):
         """Simulate from marriage to the present day for children potentially being born."""
         config = self.sim.config
         # Simulate sex (and thus potentially birth) in marriage thus far
-        for year in xrange(self.marriage.year, self.sim.true_year+1):
+        for year in range(self.marriage.year, self.sim.true_year+1):
             # If someone is pregnant and due this year, have them give birth
             if self.pregnant or self.spouse.pregnant:
                 pregnant_one = self if self.pregnant else self.spouse
