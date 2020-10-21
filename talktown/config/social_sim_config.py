@@ -1,7 +1,7 @@
 import math
 
 
-class SocialSimConfig(object):
+class SocialSimConfig:
     """Configuration parameters related to character social interactions."""
     # The chance someone will spark up an interaction with someone else has to do with their 'extroversion'
     # and 'openness to experience' personality exponents, as well as how well they already know that person

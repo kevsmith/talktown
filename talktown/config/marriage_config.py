@@ -1,4 +1,4 @@
-class MarriageConfig(object):
+class MarriageConfig:
     """Configuration parameters related to sex, love, marriage, and divorce."""
     # Marriage proposal
     min_mutual_spark_value_for_someone_to_propose_marriage = 10

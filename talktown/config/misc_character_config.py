@@ -1,7 +1,7 @@
 import random
 
 
-class MiscellaneousCharacterConfig(object):
+class MiscellaneousCharacterConfig:
     """Configuration parameters related to assorted aspects of characters."""
     # Infertility parameters (defined using a source that I failed to record)
     male_infertility_rate = 0.07

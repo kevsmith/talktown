@@ -1,4 +1,4 @@
-class PersonalityConfig(object):
+class PersonalityConfig:
     """Configuration parameters related to character personality."""
     # The personality representation in this framework is the famous Big Five model (also
     # called the 'five-factor model'); the appeal of using this representation is that there

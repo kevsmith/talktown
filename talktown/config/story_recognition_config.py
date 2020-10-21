@@ -1,4 +1,4 @@
-class StoryRecognitionConfig(object):
+class StoryRecognitionConfig:
     """Configuration parameters related to story recognition."""
     # Love triangles
     spark_threshold_for_being_captivated = 20

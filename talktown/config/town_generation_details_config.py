@@ -1,4 +1,4 @@
-class TownGenerationDetailsConfig(object):
+class TownGenerationDetailsConfig:
     """Configuration parameters related to details of the generated towns."""
     # Naming the town
     chance_town_gets_named_for_a_settler = 0.3  # Town settlers are the characters who found the town

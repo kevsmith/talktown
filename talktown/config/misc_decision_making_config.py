@@ -1,4 +1,4 @@
-class MiscellaneousCharacterDecisionMakingConfig(object):
+class MiscellaneousCharacterDecisionMakingConfig:
     """Configuration parameters related to how characters make decisions."""
     # People finding new homes (these weights affect how characters will score prospective
     # vacant homes and/or lots)

@@ -1,4 +1,4 @@
-class SalienceConfig(object):
+class SalienceConfig:
     """Configuration parameters related to how salient characters are to one another."""
     # Salience increment from a single social interaction
     salience_increment_for_social_interaction = 0.1
