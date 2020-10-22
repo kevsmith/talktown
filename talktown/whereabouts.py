@@ -1,11 +1,15 @@
-class Whereabouts(object):
-    """A collection of a character's true whereabouts on each timestep of his or her life."""
+class Whereabouts:
+    """A collection of a character's true whereabouts on each timestep of his or her life.
 
-    def __init__(self, person):
+    Attributes:
+        person: Person being tracked
+        date: A dict that maps individual timesteps to a person's whereabouts
+    """
+
+    def __init__(self, person: 'Person'):
         """Initialize a Whereabouts object."""
         self.person = person
-        # This dictionary maps individual timesteps to a person's whereabouts then;
-        # keys will be tuples of the form (ordinal_date, day_or_night_bit), where
+        # Keys will be tuples of the form (ordinal_date, day_or_night_bit), where
         # day_or_night_bit == 0 if a day timestep else 1
         self.date = {}
 

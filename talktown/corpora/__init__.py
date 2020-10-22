@@ -1,4 +1,4 @@
-import pickle
+import json
 import random
 import math
 from pathlib import Path
@@ -6,11 +6,10 @@ from pathlib import Path
 
 class Names(object):
     """A class that accesses names corpora to return random names."""
-    names_by_decade = pickle.load(open(
-        Path(__file__).parent.absolute() / 'american_names_by_decade_with_'
-        'fitted_probability_distributions.dat', 'rb'
-    )
-    )
+
+    with open(Path(__file__).parent.absolute() / 'american_names_by_decade_with_fitted_probability_distributions.dat', 'r') as f:
+        names_by_decade = json.load(f)
+
     miscellaneous_masculine_forenames = tuple(
         name[:-1] for name in
         open(Path(__file__).parent.absolute() / 'masculine_names.txt', 'r')
@@ -68,7 +67,7 @@ class Names(object):
             name = random.choice(cls.miscellaneous_masculine_forenames)
         else:
             # Choose using the actual distribution of American names this decade
-            probability_distribution_for_this_decade = cls.names_by_decade[decade]['M']
+            probability_distribution_for_this_decade = cls.names_by_decade[str(decade)]['M']
             name = next(
                 name for name in probability_distribution_for_this_decade if
                 probability_distribution_for_this_decade[name][0] <= x <=
@@ -88,7 +87,7 @@ class Names(object):
             name = random.choice(cls.miscellaneous_masculine_forenames)
         else:
             # Choose using the actual distribution of American names this decade
-            probability_distribution_for_this_decade = cls.names_by_decade[decade]['F']
+            probability_distribution_for_this_decade = cls.names_by_decade[str(decade)]['F']
             name = next(
                 name for name in probability_distribution_for_this_decade if
                 probability_distribution_for_this_decade[name][0] <= x <=
@@ -134,7 +133,7 @@ class Names(object):
         decade = int(math.floor(year/10)*10)  # Determine the current decade
         x = random.random()
         # Choose using the actual distribution of American names this decade
-        probability_distribution_for_this_decade = cls.names_by_decade[decade]['M']
+        probability_distribution_for_this_decade = cls.names_by_decade[str(decade)]['M']
         try:
             name = next(
                 name for name in probability_distribution_for_this_decade if
@@ -168,7 +167,7 @@ class Names(object):
         decade = int(math.floor(year/10)*10)  # Determine the current decade
         x = random.random()
         # Choose using the actual distribution of American names this decade
-        probability_distribution_for_this_decade = cls.names_by_decade[decade]['F']
+        probability_distribution_for_this_decade = cls.names_by_decade[str(decade)]['F']
         try:
             name = next(
                 name for name in probability_distribution_for_this_decade if

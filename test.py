@@ -15,7 +15,8 @@ if __name__ == "__main__":
 		town = sim.town
 	except KeyboardInterrupt:  # Enter "ctrl+C" (a keyboard interrupt) to end worldgen early
 		# In the case of keyboard interrupt, we need to tie up a few loose ends
-		sys.stdout.write('\r{}'.format(' ' * 94))  # Clear out the last sampled event written to stdout
+		sys.stdout.flush()
+		# sys.stdout.write('\r{}'.format(' ' * 94))  # Clear out the last sampled event written to stdout
 		sys.stdout.write('\rWrapping up...')
 		sim.advance_time()
 		for person in list(sim.town.residents):

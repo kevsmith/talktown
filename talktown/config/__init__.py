@@ -32,3 +32,6 @@ class Config:
         for config_file in ALL_CONFIG_FILES:
             for parameter, value in config_file.__dict__.items():
                 self.__dict__[parameter] = value
+
+    def get(self, key):
+        return self.__dict__[key]

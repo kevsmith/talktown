@@ -1,12 +1,14 @@
 import random
-from .business import *
-from .residence import *
-from .occupation import *
-from . import pyqtree
 from random import gauss, randrange
+import heapq
+
+from . import business
+from . import residence
+from . import occupation
+from . import pyqtree
 from .corpora import Names
 from .config import Config
-import heapq
+
 
 
 class Town:
@@ -18,6 +20,8 @@ class Town:
     def __init__(self, sim):
         """Initialize a Town object."""
         self.sim = sim
+        self.apartment_complexes = set()
+        self.other_businesses = set()
         self.houses = set()
         self.founded = sim.year
         self.settlers = set()  # Will get added to during Simulation.establish_setting()
@@ -532,7 +536,7 @@ class Town:
     @property
     def buildings(self):
         """Return all businesses and houses (not apartment units) in this town."""
-        houses = {d for d in self.dwelling_places if d.__class__ is House}
+        houses = {d for d in self.dwelling_places if d.__class__ is residence.House}
         return houses | self.companies
 
     @property
