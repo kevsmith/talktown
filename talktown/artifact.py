@@ -2,7 +2,7 @@ import random
 from .corpora import GravestoneDetails
 
 
-class Artifact(object):
+class Artifact:
     """A base class that all artifact subclasses inherit from."""
 
     def __init__(self):

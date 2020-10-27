@@ -1,4 +1,4 @@
-class StoryRecognizer(object):
+class StoryRecognizer:
     """A module that excavates nuggets of dramatic intrigue from the raw emergent material of a simulation instance."""
 
     def __init__(self, simulation):
@@ -130,7 +130,7 @@ class StoryRecognizer(object):
         return business_owner_rivalries
 
 
-class UnrequitedLove(object):
+class UnrequitedLove:
     """A case of one character's love not being reciprocated by a second character."""
 
     def __init__(self, subjects):
@@ -150,7 +150,7 @@ class UnrequitedLove(object):
         )
 
 
-class ExtramaritalRomanticInterest(object):
+class ExtramaritalRomanticInterest:
     """A case where a married character is in love with someone else."""
 
     def __init__(self, subjects):
@@ -175,7 +175,7 @@ class ExtramaritalRomanticInterest(object):
         )
 
 
-class LoveTriangle(object):
+class LoveTriangle:
     """A love triangle constituted across three characters."""
 
     def __init__(self, subjects):
@@ -202,7 +202,7 @@ class LoveTriangle(object):
         return s
 
 
-class AsymmetricFriendship(object):
+class AsymmetricFriendship:
     """A case of two characters, where A considers B to be a friend but B dislikes A."""
 
     def __init__(self, subjects):
@@ -221,7 +221,7 @@ class AsymmetricFriendship(object):
         )
 
 
-class Misanthropy(object):
+class Misanthropy:
     """A case of a character who dislikes many other characters."""
 
     def __init__(self, subjects):
@@ -240,7 +240,7 @@ class Misanthropy(object):
         )
 
 
-class Rivalry(object):
+class Rivalry:
     """A case of mutual animosity between characters."""
 
     def __init__(self, subjects):
@@ -260,7 +260,7 @@ class Rivalry(object):
         )
 
 
-class SiblingRivalry(object):
+class SiblingRivalry:
     """A case of mutual animosity between characters."""
 
     def __init__(self, subjects):
@@ -280,7 +280,7 @@ class SiblingRivalry(object):
         )
 
 
-class BusinessOwnerRivalry(object):
+class BusinessOwnerRivalry:
     """A case of animosity between owners of rival companies."""
 
     def __init__(self, subjects):

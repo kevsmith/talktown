@@ -48,7 +48,7 @@ class Whereabouts:
         return self.date[timestep_key].occasion
 
 
-class Whereabout(object):
+class Whereabout:
     """A character's true location on a single timestep, with associated metadata."""
 
     def __init__(self, person, occasion):

@@ -8,7 +8,7 @@ from .artifact import Gravestone
 
 # TODO HOW TO GIVE RETCONNED EVENTS PROPERLY ORDERED EVENT NUMBERS?
 
-class Event(object):
+class Event:
     """A superclass that all event subclasses inherit from."""
 
     def __init__(self, sim):

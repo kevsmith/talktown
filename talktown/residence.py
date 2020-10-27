@@ -1,7 +1,7 @@
 import random
 
 
-class DwellingPlace(object):
+class DwellingPlace:
     """A dwelling place in a town."""
 
     def __init__(self, lot, owners):

@@ -2,7 +2,7 @@ import string
 from .life_event import (Hiring, Birth, Divorce, NameChange, Death)
 
 
-class Occupation(object):
+class Occupation:
     """An occupation at a business in a town."""
 
     def __init__(self, person, company, shift):

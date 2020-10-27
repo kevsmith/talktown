@@ -12,7 +12,7 @@ from .corpora import Names
 # appropriate.
 
 
-class Business(object):
+class Business:
     """A business in a town (representing both the notion of a company and its physical building)."""
 
     def __init__(self, owner):
