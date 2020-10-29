@@ -13,7 +13,11 @@ from .corpora import Names
 
 
 class Business:
-    """A business in a town (representing both the notion of a company and its physical building)."""
+    """A business in a town (representing both the notion of a company and its physical building).
+
+    Attributes:
+        id (int): Unique identifier for this business
+    """
 
     def __init__(self, owner):
         """Initialize a Business object.
