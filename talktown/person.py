@@ -13,7 +13,15 @@ from .relationship import Acquaintance
 from . import face
 
 class Person:
-    """A person living in a procedurally generated American small town."""
+    """A person living in a procedurally generated American small town.
+
+    Attributes:
+        sim (simulation.Simulation): Talk of the town simulation
+        id (int): Unique person identifier
+        type (str): What type of person is this
+        birth (life_event.Birth): Birth event associated with this character
+        town (town.Town): Town this person was born in
+    """
 
     def __init__(self, sim, birth):
         """Initialize a Person object."""
@@ -166,8 +174,7 @@ class Person:
         self.impregnated_by = None
         self.conception_year = None  # Year of conception
         self.due_date = None  # Actual ordinal date 270 days from conception (currently)
-        # Prepare attributes representing events in this person's life
-        self.birth = birth
+        # Prepare attributes repre senting events in this person's life
         self.adoption = None
         self.marriage = None
         self.marriages = []
@@ -587,7 +594,7 @@ class Person:
         events += [self.departure, self.death]
         while None in events:
             events.remove(None)
-        events.sort(key=lambda ev: ev.event_number)  # Sort chronologically
+        events.sort(key=lambda ev: ev.event_id)  # Sort chronologically
         return events
 
     @property
@@ -2042,9 +2049,11 @@ class PersonExNihilo(Person):
         (due to the attendant trouble of having to then make sure the person was indeed
         born on a leap year).
         """
-        month, day, _ = self.sim.get_random_day_of_year(year=self.birth_year)
-        birthday = (month, day)
-        return birthday
+        birthdate = self.sim.get_random_day_of_year(year=self.birth_year)
+        #month, day, _ = self.sim.get_random_day_of_year(year=self.birth_year)
+        #birthday = (month, day)
+        #return birthday
+        return (birthdate.month, birthdate.day)
 
     @staticmethod
     def _override_sex(spouse):

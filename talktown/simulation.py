@@ -186,9 +186,11 @@ class Simulation:
         ordinal_date = (
             ordinal_date_on_jan_1_of_this_year + random.randint(0, 365)
         )
-        datetime_object = datetime.date.fromordinal(ordinal_date)
-        month, day = datetime_object.month, datetime_object.day
-        return month, day, ordinal_date
+        #datetime_object = datetime.date.fromordinal(ordinal_date)
+        #month, day = datetime_object.month, datetime_object.day
+        #return month, day, ordinal_date
+        return datetime.date.fromordinal(ordinal_date)
+
 
     def get_date(self, ordinal_date=None):
         """Return a pretty-printed date for ordinal date."""
