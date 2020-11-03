@@ -28,6 +28,7 @@ class Business:
         owner.sim.current_place_id += 1
         config = owner.sim.config
         self.type = "business"
+        self.construction = None #Businesscontruction event
         # 'Demise' specifies a year at which point it is highly likely this business will close
         # down (due to being anachronistic at that point, e.g., a dairy past 1930)
         self.demise = config.business_types_advent_demise_and_minimum_population[self.__class__][1]
