@@ -8,6 +8,9 @@ import pathlib
 from . import town
 from . import life_event
 from . import occupation
+from . import residence
+from . import business
+from . import relationship
 from .simulation import Simulation
 
 def serialize(sim: Simulation):
@@ -149,6 +152,14 @@ def serialize_dwelling(d):
         "people_here_now": [p.id for p in d.people_here_now],
         "demolition": d.demolition.event_id if d.demolition else -1
     }
+
+    if type(d) is residence.Apartment:
+        output["complex"] = d.complex.id if d.complex else -1
+        output["unit_number"] = d.unit_number
+
+    if type(d) is residence.House:
+        output["construction"] = d.construction.event_id if d.construction else -1
+
     return output
 
 def serialize_street(s):
@@ -353,14 +364,129 @@ def serialize_person(p):
 
     return output
 
-
 def serialize_face(f):
     """Serialize Face object"""
-    return {}
+
+    def serialize_feature(f):
+        return  {
+            "value": f,
+            "variant_id": f.variant_id,
+            "inherited_from": f.inherited_from.id if f.inherited_from else -1,
+            "exact_variant_inherited": f.exact_variant_inherited
+        }
+
+    def serialize_skin(s):
+        return {
+            "color": serialize_feature(s.color)
+        }
+
+    def serialize_head(h):
+        return {
+            "size": serialize_feature(h.size),
+            "shape": serialize_feature(h.shape)
+        }
+
+    def serialize_hair(h):
+        return {
+            "length": serialize_feature(h.length),
+            "color": serialize_feature(h.color)
+        }
+
+    def serialize_eyebrows(e):
+        return {
+            "size": serialize_feature(e.size),
+            "color": serialize_feature(e.color)
+        }
+
+    def serialize_eyes(e):
+        return {
+            "size": serialize_feature(e.size),
+            "shape": serialize_feature(e.shape),
+            "color": serialize_feature(e.color),
+            "horizontal_settedness": serialize_feature(e.horizontal_settedness),
+            "vertical_settedness": serialize_feature(e.vertical_settedness)
+        }
+
+    def serialize_ears(e):
+        return {
+            "size": serialize_feature(e.size),
+            "angle": serialize_feature(e.angle)
+        }
+
+    def serialize_nose(n):
+        return {
+            "size": serialize_feature(n.size),
+            "shape": serialize_feature(n.shape)
+        }
+
+    def serialize_mouth(m):
+        return {
+            "size": serialize_feature(m.size)
+        }
+
+    def serialize_facial_hair(fh):
+        return {
+            "style": serialize_feature(fh.style)
+        }
+
+    def serialize_distinctive_features(df):
+        return {
+            "freckles": serialize_feature(df.freckles),
+            "birthmark": serialize_feature(df.birthmark),
+            "scar": serialize_feature(df.scar),
+            "tattoo": serialize_feature(df.tattoo),
+            "glasses": serialize_feature(df.glasses),
+            "sunglasses": serialize_feature(df.sunglasses)
+        }
+
+
+    output = {
+        "person": f.person.id,
+        "skin": serialize_skin(f.skin),
+        "head": serialize_head(f.head),
+        "hair": serialize_hair(f.hair),
+        "eyebrows": serialize_eyebrows(f.eyebrows),
+        "eyes": serialize_eyes(f.eyes),
+        "ears": serialize_ears(f.ears),
+        "nose": serialize_nose(f.nose),
+        "mouth": serialize_mouth(f.mouth),
+        "facial_hair": serialize_facial_hair(f.facial_hair),
+        "distinctive_features": serialize_distinctive_features(f.distinctive_features)
+    }
+
+    return output
 
 def serialize_relationship(r):
     """Serialize Relationship object"""
-    return {}
+    output = {
+        "type": r.type,
+        "owner": r.owner.id if r.owner else -1,
+        "subject": r.subject.id if r.subject else -1,
+        "preceded_by": id(r.preceded_by) if r.preceded_by else -1,
+        "succeeded_by": id(r.succeeded_by) if r.succeeded_by else -1,
+        "where_they_met": r.where_they_met.id if r.where_they_met else -1,
+        "when_they_met": r.when_they_met,
+        "first_met_str": r.first_met_str,
+        "where_they_last_met": r.where_they_last_met.id if r.where_they_last_met else -1,
+        "when_they_last_met": r.when_they_last_met,
+        "last_met_str_base": r.last_met_str_base,
+        "total_interactions": r.total_interactions,
+        "compatibility": r.compatibility,
+        "raw_charge_increment": r.raw_charge_increment,
+        "raw_charge": r.raw_charge,
+        "raw_spark_increment": r.raw_spark_increment,
+        "raw_spark": r.raw_spark,
+        "charge": r.charge,
+        "spark": r.spark,
+        "age_difference_effect_on_charge_increment": r.age_difference_effect_on_charge_increment if r.age_difference_effect_on_charge_increment else 0,
+        "age_difference_effect_on_spark_increment": r.age_difference_effect_on_spark_increment if r.age_difference_effect_on_spark_increment else 0,
+        "job_level_difference_effect_on_charge_increment": r.job_level_difference_effect_on_charge_increment if r.job_level_difference_effect_on_charge_increment else 0,
+        "job_level_difference_effect_on_spark_increment": r.job_level_difference_effect_on_spark_increment if r.job_level_difference_effect_on_spark_increment else 0,
+        "interacted_this_timestep": r.interacted_this_timestep,
+        "conversations": []
+    }
+
+    return output
 
 def serialize_personality(p):
     """Serialize Personality object"""
@@ -450,6 +576,7 @@ def serialize_whereabouts(obj):
 
 def serialize_events(events: list):
     output = {}
+
     for _, event in enumerate(events):
         entry = {
             "event_id": event.event_id,
@@ -474,13 +601,15 @@ def serialize_events(events: list):
             entry["father"] = event.father.id
             entry["subject"] = event.subject.id
             entry["doctor"] = event.doctor.person.id if event.doctor else -1
+            entry["hospital"] = event.hospital.id if event.hospital else -1
+            entry["nurses"] = [x.person.id for x in event.nurses]
             continue
 
         if type(event) is life_event.BusinessConstruction:
             entry["subject"] = event.subject.id
             entry["architect"] = event.architect.person.id if event.architect else -1
             entry["business"] = event.business.id
-            entry["construction_firm"] = event.construction_firm.id if event.architect else -1
+            entry["construction_firm"] = event.construction_firm.id if event.construction_firm else -1
             entry["builders"] = [x.id for x in event.builders]
             continue
 
@@ -502,33 +631,80 @@ def serialize_events(events: list):
             continue
 
         if type(event) is life_event.Demolition:
+            entry["town"] = event.town.name
+            entry["building"] = event.building.id
+            entry["reason"] = event.reason.event_id
             continue
 
         if type(event) is life_event.Departure:
+            entry["subject"] = event.subject.id
             continue
 
         if type(event) is life_event.Divorce:
+            entry["town"] = event.town.name
+            entry["subjects"] = [x.id for x in event.subjects]
+            entry["lawyer"] = event.lawyer.person.id if event.lawyer else -1
+            entry["marriage"] = event.marriage.event_id
+            entry["law_firm"] = event.law_firm.id if event.law_firm else -1
             continue
 
         if type(event) is life_event.Hiring:
+            entry["subject"] = event.subject.id
+            entry["company"] = event.company.id
+            entry["occupation"] = id(event.occupation)
+            entry["old_occupation"] = id(event.old_occupation)
             continue
 
         if type(event) is life_event.HomePurchase:
+            entry["town"] = event.town.name
+            entry["subjects"] = [x.id for x in event.subjects]
+            entry["home"] = event.home.id
+            entry["realtor"] = event.realtor.person.id if event.realtor else -1
+            entry["realty_firm"] = event.realty_firm.id if event.realty_firm else -1
             continue
 
         if type(event) is life_event.HouseConstruction:
+            entry["subjects"] = [x.id for x in event.subjects]
+            entry["architect"] = event.architect.person.id if event.architect else -1
+            entry["house"] = event.house.id
+            entry["construction_firm"] = event.construction_firm.id if event.construction_firm else -1
+            entry["builders"] = [x.person.id for x in event.builders]
             continue
 
         if type(event) is life_event.LayOff:
+            entry["subject"] = event.subject.id
+            entry["company"] = event.company.id
+            entry["reason"] = event.reason.event_id if event.reason else -1
+            entry["occupation"] = serialize_occupation(event.occupation) if event.occupation else {}
             continue
 
         if type(event) is life_event.Marriage:
+            entry["town"] = event.town.name if event.town else ""
+            entry["subjects"] = [x.id for x in event.subjects]
+            entry["names_at_time_of_marriage"] = [x for x in event.names_at_time_of_marriage]
+            entry["name_changes"] = [x.event_id for x in event.name_changes]
+            entry["terminus"] = event.terminus.event_id if event.terminus else -1
+            entry["money"] = event.money if event.money else 0
+            entry["children_produced"] = [x.id for x in event.children_produced]
             continue
 
         if type(event) is life_event.Move:
+            entry["subjects"] = [x.id for x in event.subjects]
+            entry["old_home"] = event.old_home.id if event.old_home else -1
+            entry["new_home"] = event.new_home.id if event.new_home else -1
+            entry["reason"] = event.reason.event_id if event.reason else -1
             continue
 
         if type(event) is life_event.NameChange:
+            entry["town"] = event.town.name if event.town else ""
+            entry["subject"] = event.subject.id
+            entry["old_last_name"] = event.old_last_name
+            entry["new_last_name"] = event.new_last_name
+            entry["old_name"] = event.old_name
+            entry["lawyer"] = event.lawyer.person.id if event.lawyer else -1
+            entry["new_name"] = event.new_name
+            entry["reason"] = event.reason.event_id if event.reason else -1
+            entry["law_firm"] = event.law_firm.id if event.law_firm else -1
             continue
 
         if type(event) is life_event.Retirement:
@@ -579,6 +755,38 @@ def serialize_occupation(job):
 
     return output
 
-def serialize_business(business):
+def serialize_business(b):
     """Serialize Business object"""
-    return {}
+    output = {
+        "id": b.id,
+        "type": b.type,
+        "demise": b.demise,
+        "services": list(b.services),
+        "town": b.town.name,
+        "founded": b.founded,
+        "lot": b.lot.id,
+        "employees": [x.person.id for x in b.employees],
+        "former_employees": [x.person.id for x in b.former_employees],
+        "former_owners": [x.person.id for x in b.former_owners],
+        "supplemental_vacancies": {shift: [o.__name__ for o in b.supplemental_vacancies[shift]] for shift in b.supplemental_vacancies},
+        "construction": b.construction.event_id if b.construction else -1,
+        "address": b.address,
+        "house_number": b.house_number,
+        "street_address_is_on": b.street_address_is_on.id if b.street_address_is_on else -1,
+        "block": id(b.block) if b.block else -1,
+        "name": b.name if b.name else "",
+        "people_here_now": [x.id for x in b.people_here_now],
+        "demolition": b.demolition.event_id if b.demolition else -1,
+        "out_of_business": b.out_of_business,
+        "closure": b.closure.event_id if b.closure else -1,
+        "closed": b.closed if b.closed else -1
+    }
+
+    if type(b) is business.ApartmentComplex:
+        output["units"] = [x.id for x in b.units]
+
+    if type(b) is business.Cemetery:
+        output["plots"] = {x: b.plots[x].id for x in b.plots}
+
+
+    return output
