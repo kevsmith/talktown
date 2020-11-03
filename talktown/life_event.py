@@ -104,7 +104,7 @@ class Birth(Event):
             self._have_mother_potentially_exit_workforce()
         if self.doctor:  # There won't be a doctor if the birth happened outside the town
             self.hospital = doctor.company
-            self.nurse = {
+            self.nurses = {
                 position for position in self.hospital.employees if
                 position.__class__.__name__ == 'Nurse'
             }
@@ -594,6 +594,7 @@ class Divorce(Event):
         self._update_divorcee_attributes()
         self._have_divorcees_split_up_money()
         self._have_a_spouse_and_possibly_kids_change_name_back()
+        self.law_firm = None
         if lawyer:
             self.law_firm = lawyer.company
             self.lawyer.filed_divorces.add(self)
