@@ -1,7 +1,7 @@
 import random
 
 
-class Mind(object):
+class Mind:
     """A person's mind."""
 
     def __init__(self, person):

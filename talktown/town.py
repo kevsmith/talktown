@@ -621,7 +621,7 @@ class Town:
         return came_from, cost_so_far
 
 
-class Street(object):
+class Street:
     """A street in a town."""
 
     counter = 0
@@ -672,7 +672,7 @@ class Street(object):
         return self.name
 
 
-class Parcel(object):
+class Parcel:
     """A collection of between zero and four contiguous lots in a town."""
 
     counter = 0
@@ -714,7 +714,7 @@ class Parcel(object):
         return self.id < other.id
 
 
-class Block(object):
+class Block:
     """A city block in the conventional sense, e.g., the 400 block of Hennepin Ave."""
 
     def __init__(self, number, street):
@@ -746,7 +746,7 @@ class Block(object):
         return [lot.building for lot in self.lots if lot.building]
 
 
-class Lot(object):
+class Lot:
     """A lot on a city block (and multiple parcels) in a town, upon which buildings and houses get erected."""
 
     counter = 0

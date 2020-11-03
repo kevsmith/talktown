@@ -1,7 +1,7 @@
 import random
 
 
-class Face(object):
+class Face:
     """A person's face."""
 
     def __init__(self, person):
@@ -179,7 +179,7 @@ class Face(object):
         return features[feature_type]
 
 
-class Skin(object):
+class Skin:
     """A person's skin."""
 
     def __init__(self, face):
@@ -204,7 +204,7 @@ class Skin(object):
             self.color = self.face.determine_facial_feature(feature_type="skin color")
 
 
-class Head(object):
+class Head:
     """A person's head."""
 
     def __init__(self, face):
@@ -214,7 +214,7 @@ class Head(object):
         self.shape = self.face.determine_facial_feature(feature_type="head shape")
 
 
-class Hair(object):
+class Hair:
     """A person's hair (on his or her head)."""
 
     def __init__(self, face):
@@ -224,7 +224,7 @@ class Hair(object):
         self.color = self.face.determine_facial_feature(feature_type="hair color")
 
 
-class Eyebrows(object):
+class Eyebrows:
     """A person's eyebrows."""
 
     def __init__(self, face):
@@ -237,7 +237,7 @@ class Eyebrows(object):
             self.color = self.face.determine_facial_feature(feature_type="eyebrow color")
 
 
-class Eyes(object):
+class Eyes:
     """A person's eyes."""
 
     def __init__(self, face):
@@ -250,7 +250,7 @@ class Eyes(object):
         self.vertical_settedness = self.face.determine_facial_feature(feature_type="eye vertical settedness")
 
 
-class Ears(object):
+class Ears:
     """A person's ears."""
 
     def __init__(self, face):
@@ -260,7 +260,7 @@ class Ears(object):
         self.angle = self.face.determine_facial_feature(feature_type="ear angle")
 
 
-class Nose(object):
+class Nose:
     """A person's nose."""
 
     def __init__(self, face):
@@ -270,7 +270,7 @@ class Nose(object):
         self.shape = self.face.determine_facial_feature(feature_type="nose shape")
 
 
-class Mouth(object):
+class Mouth:
     """A person's mouth."""
 
     def __init__(self, face):
@@ -279,7 +279,7 @@ class Mouth(object):
         self.size = self.face.determine_facial_feature(feature_type="mouth size")
 
 
-class FacialHair(object):
+class FacialHair:
     """A person's facial hair."""
 
     def __init__(self, face):
@@ -288,7 +288,7 @@ class FacialHair(object):
         self.style = self.face.determine_facial_feature(feature_type="facial hair style")
 
 
-class DistinctiveFeatures(object):
+class DistinctiveFeatures:
     """A person's other distinguishing facial features."""
 
     def __init__(self, face):

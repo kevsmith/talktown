@@ -2,15 +2,21 @@ import random
 from .corpora import GravestoneDetails
 
 
-class Artifact(object):
+class Artifact:
     """A base class that all artifact subclasses inherit from."""
+    count = 0
 
     def __init__(self):
         """Initialize an Artifact object."""
         self.provenance = []
         self.origin = None
         self.destruction = None
+        self.id = self._init_id()
 
+    def _init_id(self):
+        artifact_id = self.count
+        self.count += 1
+        return artifact_id
 
 class Gravestone(Artifact):
     """A gravestone for a deceased character."""

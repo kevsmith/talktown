@@ -10,7 +10,7 @@ import random
 # 'leisure', not 'home'
 
 
-class Routine(object):
+class Routine:
     """A person's daily routine."""
 
     def __init__(self, person):

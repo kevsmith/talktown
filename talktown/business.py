@@ -12,8 +12,12 @@ from .corpora import Names
 # appropriate.
 
 
-class Business(object):
-    """A business in a town (representing both the notion of a company and its physical building)."""
+class Business:
+    """A business in a town (representing both the notion of a company and its physical building).
+
+    Attributes:
+        id (int): Unique identifier for this business
+    """
 
     def __init__(self, owner):
         """Initialize a Business object.
@@ -24,6 +28,7 @@ class Business(object):
         owner.sim.current_place_id += 1
         config = owner.sim.config
         self.type = "business"
+        self.construction = None #Businesscontruction event
         # 'Demise' specifies a year at which point it is highly likely this business will close
         # down (due to being anachronistic at that point, e.g., a dairy past 1930)
         self.demise = config.business_types_advent_demise_and_minimum_population[self.__class__][1]

@@ -6,7 +6,7 @@ class Whereabouts:
         date: A dict that maps individual timesteps to a person's whereabouts
     """
 
-    def __init__(self, person: 'Person'):
+    def __init__(self, person):
         """Initialize a Whereabouts object."""
         self.person = person
         # Keys will be tuples of the form (ordinal_date, day_or_night_bit), where
@@ -48,7 +48,7 @@ class Whereabouts:
         return self.date[timestep_key].occasion
 
 
-class Whereabout(object):
+class Whereabout:
     """A character's true location on a single timestep, with associated metadata."""
 
     def __init__(self, person, occasion):

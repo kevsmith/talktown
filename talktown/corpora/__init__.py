@@ -4,7 +4,7 @@ import math
 from pathlib import Path
 
 
-class Names(object):
+class Names:
     """A class that accesses names corpora to return random names."""
 
     with open(Path(__file__).parent.absolute() / 'american_names_by_decade_with_fitted_probability_distributions.dat', 'r') as f:
@@ -248,7 +248,7 @@ class Names(object):
         return random.choice(cls.bar_names)
 
 
-class GravestoneDetails(object):
+class GravestoneDetails:
     """A class that holds variants of various gravestone details, such as inscriptions."""
     headers = tuple(
         header.strip('\n') for header in

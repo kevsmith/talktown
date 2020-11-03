@@ -23,7 +23,7 @@ class Config:
     """A class that aggregates all author-defined configuration parameters."""
 
     def __init__(self):
-        """Initialize a Config object."""
+        self.settings = {}
         # This short script will slurp up all the parameters included in the various configuration
         # files -- specified as attributes on the classes defined in those files -- and set those
         # as attributes on the Config class defined above; this class will then be set as an attribute
@@ -31,7 +31,9 @@ class Config:
         # config parameters accessible through 'Simulation.config'
         for config_file in ALL_CONFIG_FILES:
             for parameter, value in config_file.__dict__.items():
+                self.settings[parameter] = value
                 self.__dict__[parameter] = value
 
     def get(self, key):
-        return self.__dict__[key]
+        """Retrieve configuration value"""
+        return self.settings[key]

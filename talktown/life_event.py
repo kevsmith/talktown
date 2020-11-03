@@ -5,32 +5,44 @@ from .corpora import Names
 from .residence import House
 from .artifact import Gravestone
 
+class Event:
+    """A superclass that all event subclasses inherit from.
 
-# TODO HOW TO GIVE RETCONNED EVENTS PROPERLY ORDERED EVENT NUMBERS?
+    Attributes:
+        date (datetime.date): date of the event
+        event_id(int): Unique identifier of this event object
+    """
 
-class Event(object):
-    """A superclass that all event subclasses inherit from."""
+    def __init__(self, event_id, date):
+        self.event_id = event_id
+        self.date = date
 
-    def __init__(self, sim):
-        """Initialize an Event object."""
-        self.year = sim.year
-        if self.year < sim.config.year_worldgen_begins:  # This event is being retconned; generate a random day
-            self.month, self.day, self.ordinal_date = sim.get_random_day_of_year(year=self.year)
-            self.date = sim.get_date(ordinal_date=self.ordinal_date)
-        else:
-            self.month = sim.month
-            self.day = sim.day
-            self.ordinal_date = sim.ordinal_date
-            self.date = sim.date
-        # Also request and attribute an event number, so that we can later
-        # determine the precise ordering of events that happen on the same timestep
-        self.event_number = sim.assign_event_number(new_event=self)
+    @property
+    def year(self):
+        return self.date.year
 
+    @property
+    def month(self):
+        return self.date.month
+
+    @property
+    def day(self):
+        return self.date.day
+
+    @property
+    def ordinal_date(self):
+        return self.date.toordinal()
 
 class Adoption(Event):
     """An adoption of a child by a person(s) who is/are not their biological parent.
 
-    Adoptions have not been fully implemented yet.
+    Note:
+        Adoptions have not been fully implemented yet.
+
+    Attributes:
+        subject (person.Person): Adoptee
+        town: (town.Town): Town where the person was adopted
+        adoptive_parents (tuple(person.Person, person.Person)): Parents
     """
 
     def __init__(self, subject, adoptive_parents):
@@ -39,7 +51,7 @@ class Adoption(Event):
         @param subject: The adoptee.
         @param adoptive_parents: The adoptive parent(s).
         """
-        super(Adoption, self).__init__(sim=subject.sim)
+        super(Adoption, self).__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
         self.town = adoptive_parents[0].town  # May be None if parents not in the town yet
         self.subject = subject
         self.subject.adoption = self  # Could there be multiple, actually?
@@ -47,10 +59,18 @@ class Adoption(Event):
         for adoptive_parent in adoptive_parents:
             adoptive_parent.adoptions.append(self)
 
+    def create(self, event_id, date, subject, town, adoptive_parents):
+        super().__init__(event_id, date)
+        self.subject = subject
+        self.town = town
+        self.adoptive_parents = adoptive_parents
+
+
+
     def __str__(self):
         """Return string representation."""
         return "Adoption of {0} by {1} in {2}".format(
-            self.subject.name, ' and '.join(ap.name for ap in self.adoptive_parents), self.year
+            self.subject.name, ' and '.join(ap.name for ap in self.adoptive_parents), self.date.year
         )
 
 
@@ -59,7 +79,7 @@ class Birth(Event):
 
     def __init__(self, mother, doctor):
         """Initialize a Birth object."""
-        super(Birth, self).__init__(sim=mother.sim)
+        super(Birth, self).__init__(mother.sim.assign_event_number(new_event=self), mother.sim.get_random_day_of_year(year=mother.sim.year))
         self.town = mother.town
         self.biological_mother = mother
         self.mother = mother
@@ -73,9 +93,9 @@ class Birth(Event):
         self.doctor = doctor
         # Update the sim's listing of all people's birthdays
         try:
-            mother.sim.birthdays[(self.month, self.day)].add(self.subject)
+            mother.sim.birthdays[(self.date.month, self.date.day)].add(self.subject)
         except KeyError:
-            mother.sim.birthdays[(self.month, self.day)] = {self.subject}
+            mother.sim.birthdays[(self.date.month, self.date.day)] = {self.subject}
         self._name_baby()
         self._update_mother_attributes()
         if self.mother.town:
@@ -84,7 +104,7 @@ class Birth(Event):
             self._have_mother_potentially_exit_workforce()
         if self.doctor:  # There won't be a doctor if the birth happened outside the town
             self.hospital = doctor.company
-            self.nurse = {
+            self.nurses = {
                 position for position in self.hospital.employees if
                 position.__class__.__name__ == 'Nurse'
             }
@@ -97,7 +117,7 @@ class Birth(Event):
         """Return string representation."""
         return "Birth of {} {} {} in {}".format(
             self.subject.first_name, self.subject.middle_name,
-            self.subject.maiden_name, self.year
+            self.subject.maiden_name, self.date.year
         )
 
     def _update_mother_attributes(self):
@@ -195,9 +215,9 @@ class Birth(Event):
         else:
             first_name_namegiver = None
             if self.subject.male:
-                first_name_rep = Names.a_masculine_name(year=self.year)
+                first_name_rep = Names.a_masculine_name(year=self.date.year)
             else:
-                first_name_rep = Names.a_feminine_name(year=self.year)
+                first_name_rep = Names.a_feminine_name(year=self.date.year)
             first_name = Name(
                 value=first_name_rep, progenitor=self.subject, conceived_by=self.subject.parents, derived_from=()
             )
@@ -212,9 +232,9 @@ class Birth(Event):
         else:
             middle_name_namegiver = None
             if self.subject.male:
-                middle_name_rep = Names.a_masculine_name(year=self.year)
+                middle_name_rep = Names.a_masculine_name(year=self.date.year)
             else:
-                middle_name_rep = Names.a_feminine_name(year=self.year)
+                middle_name_rep = Names.a_feminine_name(year=self.date.year)
             middle_name = Name(
                 value=middle_name_rep, progenitor=self.subject, conceived_by=self.subject.parents, derived_from=()
             )
@@ -262,7 +282,7 @@ class Birth(Event):
 
     def _get_suffix(self):
         """Return a suffix if the person shares their parent's full name, else an empty string."""
-        son, father = self.subject, self.subject.father
+        _, father = self.subject, self.subject.father
         increment_suffix = {
             '': 'II', 'II': 'III', 'III': 'IV', 'IV': 'V', 'V': 'VI',
             'VI': 'VII', 'VII': 'VIII', 'VIII': 'IX', 'IX': 'X'
@@ -282,7 +302,7 @@ class Birth(Event):
             # with a retired family member in town, etc.
             self.mother.occupation.terminate(reason=self)
         else:
-            if random.random() < self.mother.sim.config.chance_mother_of_young_children_stays_home(year=self.year):
+            if random.random() < self.mother.sim.config.chance_mother_of_young_children_stays_home(year=self.date.year):
                 self.mother.occupation.terminate(reason=self)
 
 
@@ -293,18 +313,25 @@ class BusinessConstruction(Event):
     call to instantiate one of these objects -- where in a HouseConstruction the
     direction is opposite: a HouseConstruction object makes the call to instantiate
     a House object.
+
+    Attributes:
+        subject (person.Person): Person who is getting the business built
+        architect (occupation.Architect or None): Person designing the business
+        business (business.Business): Business being built
+        construction_firm (business.Business): Company that built the business
+        builders (set(person.Person)): People who helped build the business
     """
 
     def __init__(self, subject, business, architect, demolition_that_preceded_this=None):
         """Initialize a BusinessConstruction object."""
-        super(BusinessConstruction, self).__init__(sim=subject.sim)
+        super(BusinessConstruction, self).__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
         self.subject = subject
         self.architect = architect
         self.business = business
         if self.architect:
             self.construction_firm = architect.company
             self.builders = set([
-                position for position in self.construction_firm.employees if
+                position.person for position in self.construction_firm.employees if
                 position.__class__.__name__ == 'Builder'
             ])
             self.architect.building_constructions.add(self)
@@ -313,13 +340,15 @@ class BusinessConstruction(Event):
             self.construction_firm = None
             self.builders = {p for p in subject.nuclear_family if p.in_the_workforce}
         self.subject.building_commissions.add(self)
+
+
         if demolition_that_preceded_this:
             demolition_that_preceded_this.reason = self
 
     def __str__(self):
         """Return string representation."""
         return "Construction of {} at {} in {}".format(
-            self.business.name, self.business.address, self.year
+            self.business.name, self.business.address, self.date.year
         )
 
 
@@ -328,7 +357,7 @@ class BusinessClosure(Event):
 
     def __init__(self, business, reason=None):
         """Initialize a Demolition object."""
-        super(BusinessClosure, self).__init__(sim=business.town.sim)
+        super(BusinessClosure, self).__init__(business.town.sim.assign_event_number(new_event=self), business.town.sim.get_random_day_of_year(year=business.town.sim.year))
         self.town = business.town
         self.business = business
         self.reason = reason  # Potentially this will point to a object for the owner's Retirement
@@ -336,7 +365,7 @@ class BusinessClosure(Event):
         # The company's out_of_business attribute must be set before anyone is laid off,
         # else the company will try to replace that person
         business.out_of_business = True
-        business.closed = self.year
+        business.closed = self.date.year
         for employee in list(business.employees):
             LayOff(subject=employee.person, company=business, occupation=employee)
         self.town.companies.remove(business)
@@ -351,19 +380,30 @@ class BusinessClosure(Event):
     def __str__(self):
         """Return string representation."""
         return "Closure of {} in {}".format(
-            self.business.name, self.year
+            self.business.name, self.date.year
         )
 
 
 class Death(Event):
-    """A death of a person in the town."""
+    """A death of a person in the town.
+
+    Attributes:
+        town (town.Town): Town where the person died
+        subject (person.Person): Person who died
+        widow (person.Person): The subject's spouse
+        casuse (Event): Reason for death
+        mortitian (occupation.Mortitian): Motitian in the town
+        cemetery (business.Cemetery): Cemetery where this person is burried
+        next_of_kin (person.Person): The subject's next of kin
+        cemetery_plot (int): Plot where the subject is burried in the cemetary
+    """
 
     def __init__(self, subject, mortician, cause_of_death):
         """Initialize a Death object."""
-        super(Death, self).__init__(sim=subject.sim)
+        super(Death, self).__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
         self.town = subject.town
         self.subject = subject
-        self.subject.death_year = self.year
+        self.subject.death_year = self.date.year
         self.subject.death = self
         self.widow = None  # Will get set by _update_attributes_of_deceased_and_spouse() if person was married
         self.cause = cause_of_death
@@ -402,7 +442,7 @@ class Death(Event):
     def __str__(self):
         """Return string representation."""
         return "Death of {0} in {1}".format(
-            self.subject.name, self.year
+            self.subject.name, self.date.year
         )
 
     def _update_attributes_of_deceased_and_spouse(self):
@@ -442,7 +482,7 @@ class Demolition(Event):
 
     def __init__(self, building, demolition_company, reason=None):
         """Initialize a Demolition object."""
-        super(Demolition, self).__init__(sim=building.town.sim)
+        super(Demolition, self).__init__(building.town.sim.assign_event_number(new_event=self), building.town.sim.get_random_day_of_year(year=building.town.sim.year))
         self.town = building.town
         self.building = building
         self.demolition_company = demolition_company  # ConstructionFirm handling the demolition
@@ -477,11 +517,11 @@ class Demolition(Event):
         """Return string representation."""
         if self.reason:
             return "Demolition of {} on behalf of {} in {}".format(
-                self.building.name, self.reason.business, self.year
+                self.building.name, self.reason.business, self.date.year
             )
         else:
             return "Demolition of {} in {}".format(
-                self.building.name, self.year
+                self.building.name, self.date.year
             )
 
 
@@ -490,7 +530,7 @@ class Departure(Event):
 
     def __init__(self, subject):
         """Initialize a Departure object."""
-        super(Departure, self).__init__(sim=subject.sim)
+        super(Departure, self).__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
         self.subject = subject
         subject.town.residents.remove(subject)
         subject.town.departed.add(subject)
@@ -531,7 +571,7 @@ class Departure(Event):
     def __str__(self):
         """Return string representation."""
         return "Departure of {0} in {1}".format(
-            self.subject.name, self.year
+            self.subject.name, self.date.year
         )
 
     def _vacate_job_position_of_the_departed(self):
@@ -545,7 +585,7 @@ class Divorce(Event):
 
     def __init__(self, subjects, lawyer):
         """Initialize a divorce object."""
-        super(Divorce, self).__init__(sim=subjects[0].sim)
+        super(Divorce, self).__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.year))
         self.town = subjects[0].town
         self.subjects = subjects
         self.lawyer = lawyer
@@ -554,6 +594,7 @@ class Divorce(Event):
         self._update_divorcee_attributes()
         self._have_divorcees_split_up_money()
         self._have_a_spouse_and_possibly_kids_change_name_back()
+        self.law_firm = None
         if lawyer:
             self.law_firm = lawyer.company
             self.lawyer.filed_divorces.add(self)
@@ -567,7 +608,7 @@ class Divorce(Event):
     def __str__(self):
         """Return string representation."""
         return "Divorce of {0} and {1} in {2}".format(
-            self.subjects[0].name, self.subjects[1].name, self.year
+            self.subjects[0].name, self.subjects[1].name, self.date.year
         )
 
     def _update_divorcee_attributes(self):
@@ -729,7 +770,7 @@ class Hiring(Event):
 
     def __init__(self, subject, company, occupation):
         """Initialize a Hiring object."""
-        super(Hiring, self).__init__(sim=subject.sim)
+        super(Hiring, self).__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
         self.subject = subject
         self.company = company
         self.old_occupation = subject.occupation
@@ -744,7 +785,7 @@ class Hiring(Event):
     def __str__(self):
         """Return string representation."""
         return "Hiring of {} as {} at {} in {}".format(
-            self.subject.name, self.occupation.__class__.__name__, self.company.name, self.year
+            self.subject.name, self.occupation.__class__.__name__, self.company.name, self.date.year
         )
 
 
@@ -753,7 +794,7 @@ class HomePurchase(Event):
 
     def __init__(self, subjects, home, realtor):
         """Initialize a HomePurchase object."""
-        super(HomePurchase, self).__init__(sim=subjects[0].sim)
+        super(HomePurchase, self).__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.year))
         self.town = subjects[0].town
         self.subjects = subjects
         for subject in subjects:
@@ -772,7 +813,7 @@ class HomePurchase(Event):
         """Return string representation."""
         return "Purchase of {0} at {1} by {2} in {3}".format(
             "apartment" if self.home.apartment else "house", self.home.address,
-            " and ".join(s.name for s in self.subjects), self.year
+            " and ".join(s.name for s in self.subjects), self.date.year
         )
 
     def _transfer_ownership(self):
@@ -786,7 +827,7 @@ class HouseConstruction(Event):
 
     def __init__(self, subjects, architect, lot, demolition_that_preceded_this=None):
         """Initialize a HouseConstruction object."""
-        super(HouseConstruction, self).__init__(sim=subjects[0].sim)
+        super(HouseConstruction, self).__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.year))
         self.subjects = subjects
         self.architect = architect
         self.house = House(lot=lot, construction=self)
@@ -810,11 +851,11 @@ class HouseConstruction(Event):
         subjects_str = ', '.join(s.name for s in self.subjects)
         if self.construction_firm:
             return "Construction of house at {} by {} for {} in {}".format(
-                self.house.address, self.construction_firm, subjects_str, self.year
+                self.house.address, self.construction_firm, subjects_str, self.date.year
             )
         else:
             return "Construction of house at {} for {} in {}".format(
-                self.house.address, subjects_str, self.year
+                self.house.address, subjects_str, self.date.year
             )
 
 
@@ -823,7 +864,7 @@ class LayOff(Event):
 
     def __init__(self, subject, company, occupation):
         """Initialize a LayOff object."""
-        super(LayOff, self).__init__(sim=subject.sim)
+        super(LayOff, self).__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
         self.subject = subject
         subject.lay_offs.append(self)
         self.company = company
@@ -834,7 +875,7 @@ class LayOff(Event):
     def __str__(self):
         """Return string representation."""
         return "Laying off of {} as {} at {} in {}".format(
-            self.subject.name, self.occupation.__class__.__name__, self.occupation.company.name, self.year
+            self.subject.name, self.occupation.__class__.__name__, self.occupation.company.name, self.date.year
         )
 
 
@@ -843,7 +884,7 @@ class Marriage(Event):
 
     def __init__(self, subjects):
         """Initialize a Marriage object."""
-        super(Marriage, self).__init__(sim=subjects[0].sim)
+        super(Marriage, self).__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.year))
         self.town = subjects[0].town
         self.subjects = subjects
         self.names_at_time_of_marriage = (self.subjects[0].name, self.subjects[1].name)
@@ -863,16 +904,16 @@ class Marriage(Event):
     def __str__(self):
         """Return string representation."""
         return "Marriage between {} and {} in {}".format(
-            self.names_at_time_of_marriage[0], self.names_at_time_of_marriage[1], self.year
+            self.names_at_time_of_marriage[0], self.names_at_time_of_marriage[1], self.date.year
         )
 
     @property
     def duration(self):
         """Return the duration of this marriage."""
         if self.terminus:
-            duration = self.terminus.year - self.year
+            duration = self.terminus.year - self.date.year
         else:
-            duration = self.subjects[0].sim.year-self.year
+            duration = self.subjects[0].sim.year-self.date.year
         return duration
 
     def _update_newlywed_attributes(self):
@@ -1007,7 +1048,7 @@ class Move(Event):
 
     def __init__(self, subjects, new_home, reason):
         """Initialize a Move object."""
-        super(Move, self).__init__(sim=subjects[0].sim)
+        super(Move, self).__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.year))
         self.subjects = subjects
         self.old_home = self.subjects[0].home  # May be None if newborn or person moved from outside the town
         self.new_home = new_home
@@ -1093,7 +1134,7 @@ class Move(Event):
         """Return string representation."""
         return "Move to {0} at {1} by {2} in {3}".format(
             "apartment" if self.new_home.apartment else "house", self.new_home.address,
-            ", ".join(s.name for s in self.subjects), self.year
+            ", ".join(s.name for s in self.subjects), self.date.year
         )
 
 
@@ -1102,7 +1143,7 @@ class NameChange(Event):
 
     def __init__(self, subject, new_last_name, reason, lawyer):
         """Initialize a NameChange object."""
-        super(NameChange, self).__init__(sim=subject.sim)
+        super(NameChange, self).__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
         self.town = subject.town
         self.subject = subject
         self.old_last_name = subject.last_name
@@ -1125,15 +1166,21 @@ class NameChange(Event):
     def __str__(self):
         """Return string representation."""
         return "Name change by which {} became known as {} in {}".format(
-            self.old_name, self.new_name, self.year
+            self.old_name, self.new_name, self.date.year
         )
 
 class Retirement(Event):
-    """A retirement by which a person ceases some occupation."""
+    """A retirement by which a person ceases some occupation.
+
+    Attributes:
+        subject (person.Person): Person who retired
+        occupation (occupation.Occupation): Occupation retired from
+        company (business.Business):
+    """
 
     def __init__(self, subject):
         """Initialize a Retirement object."""
-        super(Retirement, self).__init__(sim=subject.sim)
+        super(Retirement, self).__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
         self.subject = subject
         self.subject.retired = True
         self.subject.retirement = self
@@ -1145,5 +1192,5 @@ class Retirement(Event):
     def __str__(self):
         """Return string representation."""
         return "Retirement of {} as {} at {} in {}".format(
-            self.subject.name, self.occupation.__class__.__name__, self.occupation.company.name, self.year
+            self.subject.name, self.occupation.__class__.__name__, self.occupation.company.name, self.date.year
         )
