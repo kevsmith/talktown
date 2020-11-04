@@ -56,7 +56,7 @@ serializer.serialize_to_file(sim, "./out/town.json")
 
 Below is a sample of the JSON format used when serializing talktown simulations.
 
-```JSON
+```javascript
 // Talktown JSON Format
 {
         // simulation properties
