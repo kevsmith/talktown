@@ -577,7 +577,7 @@ def serialize_whereabouts(obj):
 def serialize_events(events: list):
     output = {}
 
-    for _, event in enumerate(events):
+    for event in events:
         entry = {
             "event_id": event.event_id,
             "type": event.__class__.__name__,
@@ -591,7 +591,6 @@ def serialize_events(events: list):
             entry["town"] = event.town.name if event.town else ""
             entry["subject"] = event.subject.id
             entry["adoptive_parents"] = [x.id for x in event.adoptive_parents]
-            continue
 
         if type(event) is life_event.Birth:
             entry["town"] = event.town.name if event.town else ""
@@ -603,7 +602,6 @@ def serialize_events(events: list):
             entry["doctor"] = event.doctor.person.id if event.doctor else -1
             entry["hospital"] = event.hospital.id if event.hospital else -1
             entry["nurses"] = [x.person.id for x in event.nurses]
-            continue
 
         if type(event) is life_event.BusinessConstruction:
             entry["subject"] = event.subject.id
@@ -611,13 +609,11 @@ def serialize_events(events: list):
             entry["business"] = event.business.id
             entry["construction_firm"] = event.construction_firm.id if event.construction_firm else -1
             entry["builders"] = [x.id for x in event.builders]
-            continue
 
         if type(event) is life_event.BusinessClosure:
             entry["town"] = event.town.name if event.town else ""
             entry["business"] = event.business.id
             entry["reason"] = event.reason.event_number if event.reason else -1
-            continue
 
         if type(event) is life_event.Death:
             entry["town"] = event.town.name if event.town else ""
@@ -628,17 +624,14 @@ def serialize_events(events: list):
             entry["cemetery"] = event.cemetery.id if event.cemetery else -1
             entry["next_of_kin"] = event.next_of_kin.id if event.next_of_kin else -1
             entry["cemetery_plot"] = event.cemetery_plot if event.cemetery_plot else -1
-            continue
 
         if type(event) is life_event.Demolition:
             entry["town"] = event.town.name
             entry["building"] = event.building.id
             entry["reason"] = event.reason.event_id
-            continue
 
         if type(event) is life_event.Departure:
             entry["subject"] = event.subject.id
-            continue
 
         if type(event) is life_event.Divorce:
             entry["town"] = event.town.name
@@ -646,14 +639,12 @@ def serialize_events(events: list):
             entry["lawyer"] = event.lawyer.person.id if event.lawyer else -1
             entry["marriage"] = event.marriage.event_id
             entry["law_firm"] = event.law_firm.id if event.law_firm else -1
-            continue
 
         if type(event) is life_event.Hiring:
             entry["subject"] = event.subject.id
             entry["company"] = event.company.id
             entry["occupation"] = id(event.occupation)
             entry["old_occupation"] = id(event.old_occupation)
-            continue
 
         if type(event) is life_event.HomePurchase:
             entry["town"] = event.town.name
@@ -661,7 +652,6 @@ def serialize_events(events: list):
             entry["home"] = event.home.id
             entry["realtor"] = event.realtor.person.id if event.realtor else -1
             entry["realty_firm"] = event.realty_firm.id if event.realty_firm else -1
-            continue
 
         if type(event) is life_event.HouseConstruction:
             entry["subjects"] = [x.id for x in event.subjects]
@@ -669,14 +659,12 @@ def serialize_events(events: list):
             entry["house"] = event.house.id
             entry["construction_firm"] = event.construction_firm.id if event.construction_firm else -1
             entry["builders"] = [x.person.id for x in event.builders]
-            continue
 
         if type(event) is life_event.LayOff:
             entry["subject"] = event.subject.id
             entry["company"] = event.company.id
             entry["reason"] = event.reason.event_id if event.reason else -1
             entry["occupation"] = serialize_occupation(event.occupation) if event.occupation else {}
-            continue
 
         if type(event) is life_event.Marriage:
             entry["town"] = event.town.name if event.town else ""
@@ -686,14 +674,12 @@ def serialize_events(events: list):
             entry["terminus"] = event.terminus.event_id if event.terminus else -1
             entry["money"] = event.money if event.money else 0
             entry["children_produced"] = [x.id for x in event.children_produced]
-            continue
 
         if type(event) is life_event.Move:
             entry["subjects"] = [x.id for x in event.subjects]
             entry["old_home"] = event.old_home.id if event.old_home else -1
             entry["new_home"] = event.new_home.id if event.new_home else -1
             entry["reason"] = event.reason.event_id if event.reason else -1
-            continue
 
         if type(event) is life_event.NameChange:
             entry["town"] = event.town.name if event.town else ""
@@ -705,15 +691,14 @@ def serialize_events(events: list):
             entry["new_name"] = event.new_name
             entry["reason"] = event.reason.event_id if event.reason else -1
             entry["law_firm"] = event.law_firm.id if event.law_firm else -1
-            continue
 
         if type(event) is life_event.Retirement:
             entry["subject"] = event.subject.id
             entry["occupation"] = serialize_occupation(event.occupation)
             entry["company"] = event.company.id
-            continue
 
         output[event.event_id] = entry
+
     return output
 
 def serialize_occupation(job):
