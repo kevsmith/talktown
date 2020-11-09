@@ -325,7 +325,7 @@ class Feature(str):
         @param exact_variant_inherited: Whether the exact feature variant was also inherited
                                         from inherited_from.
         """
-        super(Feature, self).__init__()
+        super().__init__()
         self.variant_id = variant_id
         self.inherited_from = inherited_from
         self.exact_variant_inherited = exact_variant_inherited

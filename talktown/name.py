@@ -19,7 +19,7 @@ class Name(str):
                              the name is hyphenated.
         @param derived_from: The two Names from which a hyphenated surname is derived.
         """
-        super(Name, self).__init__()
+        super().__init__()
         self.progenitor = progenitor
         self.conceived_by = conceived_by
         self.derived_from = derived_from

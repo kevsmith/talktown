@@ -171,7 +171,7 @@ class Cashier(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Cashier, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Janitor(Occupation):
@@ -183,7 +183,7 @@ class Janitor(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Janitor, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Manager(Occupation):
@@ -195,7 +195,7 @@ class Manager(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Manager, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Secretary(Occupation):
@@ -207,7 +207,7 @@ class Secretary(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Secretary, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Proprietor(Occupation):
@@ -219,7 +219,7 @@ class Proprietor(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Proprietor, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Owner(Occupation):
@@ -231,7 +231,7 @@ class Owner(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Owner, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Bottler(Occupation):
@@ -243,7 +243,7 @@ class Bottler(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Bottler, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Groundskeeper(Occupation):
@@ -255,7 +255,7 @@ class Groundskeeper(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Groundskeeper, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Nurse(Occupation):
@@ -267,7 +267,7 @@ class Nurse(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Nurse, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Apprentice(Occupation):
@@ -279,7 +279,7 @@ class Apprentice(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Apprentice, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Architect(Occupation):
@@ -291,7 +291,7 @@ class Architect(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Architect, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
         # Work accomplishments
         self.building_constructions = set()
         self.house_constructions = set()
@@ -306,7 +306,7 @@ class BankTeller(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(BankTeller, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Bartender(Occupation):
@@ -318,7 +318,7 @@ class Bartender(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Bartender, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class BusDriver(Occupation):
@@ -330,7 +330,7 @@ class BusDriver(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(BusDriver, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Concierge(Occupation):
@@ -342,7 +342,7 @@ class Concierge(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Concierge, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Builder(Occupation):
@@ -354,7 +354,7 @@ class Builder(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Builder, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class DaycareProvider(Occupation):
@@ -366,7 +366,7 @@ class DaycareProvider(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(DaycareProvider, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Doctor(Occupation):
@@ -378,7 +378,7 @@ class Doctor(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Doctor, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
         # Work accomplishments
         self.baby_deliveries = set()
 
@@ -396,7 +396,7 @@ class FireChief(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(FireChief, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Firefighter(Occupation):
@@ -408,7 +408,7 @@ class Firefighter(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Firefighter, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Barber(Occupation):
@@ -420,7 +420,7 @@ class Barber(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Barber, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class HotelMaid(Occupation):
@@ -432,7 +432,7 @@ class HotelMaid(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(HotelMaid, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Lawyer(Occupation):
@@ -444,7 +444,7 @@ class Lawyer(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Lawyer, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
         # Work accomplishments
         self.filed_divorces = set()
         self.filed_name_changes = set()
@@ -469,7 +469,7 @@ class Mayor(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Mayor, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Mortician(Occupation):
@@ -481,7 +481,7 @@ class Mortician(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Mortician, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
         # Work accomplishments
         self.body_interments = set()
 
@@ -499,7 +499,7 @@ class Optometrist(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Optometrist, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class PlasticSurgeon(Occupation):
@@ -511,7 +511,7 @@ class PlasticSurgeon(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(PlasticSurgeon, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class PoliceChief(Occupation):
@@ -523,7 +523,7 @@ class PoliceChief(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(PoliceChief, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class PoliceOfficer(Occupation):
@@ -535,7 +535,7 @@ class PoliceOfficer(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(PoliceOfficer, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Principal(Occupation):
@@ -547,7 +547,7 @@ class Principal(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Principal, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Realtor(Occupation):
@@ -559,7 +559,7 @@ class Realtor(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Realtor, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
         # Work accomplishments
         self.home_sales = set()
 
@@ -573,7 +573,7 @@ class Professor(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Professor, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class TattooArtist(Occupation):
@@ -585,7 +585,7 @@ class TattooArtist(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(TattooArtist, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class TaxiDriver(Occupation):
@@ -597,7 +597,7 @@ class TaxiDriver(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(TaxiDriver, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Teacher(Occupation):
@@ -609,7 +609,7 @@ class Teacher(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Teacher, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Waiter(Occupation):
@@ -621,7 +621,7 @@ class Waiter(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Waiter, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Baker(Occupation):
@@ -633,7 +633,7 @@ class Baker(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Baker, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Barkeeper(Occupation):
@@ -645,7 +645,7 @@ class Barkeeper(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Barkeeper, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Blacksmith(Occupation):
@@ -657,7 +657,7 @@ class Blacksmith(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Blacksmith, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Brewer(Occupation):
@@ -669,7 +669,7 @@ class Brewer(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Brewer, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Bricklayer(Occupation):
@@ -681,7 +681,7 @@ class Bricklayer(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Bricklayer, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Busboy(Occupation):
@@ -693,7 +693,7 @@ class Busboy(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Busboy, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Butcher(Occupation):
@@ -705,7 +705,7 @@ class Butcher(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Butcher, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Carpenter(Occupation):
@@ -717,7 +717,7 @@ class Carpenter(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Carpenter, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Clothier(Occupation):
@@ -729,7 +729,7 @@ class Clothier(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Clothier, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Cook(Occupation):
@@ -741,7 +741,7 @@ class Cook(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Cook, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Cooper(Occupation):
@@ -753,7 +753,7 @@ class Cooper(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Cooper, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Dentist(Occupation):
@@ -765,7 +765,7 @@ class Dentist(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Dentist, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Dishwasher(Occupation):
@@ -777,7 +777,7 @@ class Dishwasher(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Dishwasher, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Distiller(Occupation):
@@ -789,7 +789,7 @@ class Distiller(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Distiller, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Dressmaker(Occupation):
@@ -801,7 +801,7 @@ class Dressmaker(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Dressmaker, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Druggist(Occupation):
@@ -813,7 +813,7 @@ class Druggist(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Druggist, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Engineer(Occupation):
@@ -825,7 +825,7 @@ class Engineer(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Engineer, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Farmer(Occupation):
@@ -837,7 +837,7 @@ class Farmer(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Farmer, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Farmhand(Occupation):
@@ -849,7 +849,7 @@ class Farmhand(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Farmhand, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Grocer(Occupation):
@@ -861,7 +861,7 @@ class Grocer(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Grocer, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Innkeeper(Occupation):
@@ -873,7 +873,7 @@ class Innkeeper(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Innkeeper, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class InsuranceAgent(Occupation):
@@ -885,7 +885,7 @@ class InsuranceAgent(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(InsuranceAgent, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Jeweler(Occupation):
@@ -897,7 +897,7 @@ class Jeweler(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Jeweler, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Joiner(Occupation):
@@ -909,7 +909,7 @@ class Joiner(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Joiner, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Laborer(Occupation):
@@ -921,7 +921,7 @@ class Laborer(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Laborer, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Landlord(Occupation):
@@ -933,7 +933,7 @@ class Landlord(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Landlord, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Milkman(Occupation):
@@ -945,7 +945,7 @@ class Milkman(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Milkman, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Miner(Occupation):
@@ -957,7 +957,7 @@ class Miner(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Miner, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Molder(Occupation):
@@ -969,7 +969,7 @@ class Molder(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Molder, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Painter(Occupation):
@@ -981,7 +981,7 @@ class Painter(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Painter, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Pharmacist(Occupation):
@@ -993,7 +993,7 @@ class Pharmacist(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Pharmacist, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Plasterer(Occupation):
@@ -1005,7 +1005,7 @@ class Plasterer(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Plasterer, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Plumber(Occupation):
@@ -1017,7 +1017,7 @@ class Plumber(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Plumber, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Puddler(Occupation):
@@ -1029,7 +1029,7 @@ class Puddler(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Puddler, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Quarryman(Occupation):
@@ -1041,7 +1041,7 @@ class Quarryman(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Quarryman, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Seamstress(Occupation):
@@ -1053,7 +1053,7 @@ class Seamstress(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Seamstress, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Shoemaker(Occupation):
@@ -1065,7 +1065,7 @@ class Shoemaker(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Shoemaker, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Stocker(Occupation):
@@ -1077,7 +1077,7 @@ class Stocker(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Stocker, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Stonecutter(Occupation):
@@ -1089,7 +1089,7 @@ class Stonecutter(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Stonecutter, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Tailor(Occupation):
@@ -1101,7 +1101,7 @@ class Tailor(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Tailor, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Turner(Occupation):
@@ -1113,7 +1113,7 @@ class Turner(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Turner, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Whitewasher(Occupation):
@@ -1125,7 +1125,7 @@ class Whitewasher(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Whitewasher, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)
 
 
 class Woodworker(Occupation):
@@ -1137,4 +1137,4 @@ class Woodworker(Occupation):
         @param person: The Person object for the person whose occupation this is.
         @param company: The Company object for the company that person works for in this capacity.
         """
-        super(Woodworker, self).__init__(person=person, company=company, shift=shift)
+        super().__init__(person=person, company=company, shift=shift)

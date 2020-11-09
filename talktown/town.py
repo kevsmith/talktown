@@ -850,7 +850,7 @@ class Tract(Lot):
     def __init__(self, town, size):
         """Initialize a Tract object."""
         self.size = size
-        super(Tract, self).__init__(town)
+        super().__init__(town)
 
     def __gt__(self, other):
         return self.size > other.size

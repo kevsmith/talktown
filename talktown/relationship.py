@@ -405,7 +405,7 @@ class Acquaintance(Relationship):
         @param subject: The other person to whom the conception pertains.
         @param preceded_by: A Kinship relationship that preceded this, if any.
         """
-        super(Acquaintance, self).__init__(owner, subject, preceded_by)
+        super().__init__(owner, subject, preceded_by)
         owner.acquaintances.add(subject)
         if self.owner not in self.subject.relationships:
             Acquaintance(owner=self.subject, subject=self.owner, preceded_by=None)
@@ -426,7 +426,7 @@ class Enmity(Relationship):
         @param subject: The other person to whom the conception pertains.
         @param preceded_by: An Acquaintance relationship that preceded this.
         """
-        super(Enmity, self).__init__(owner, subject, preceded_by)
+        super().__init__(owner, subject, preceded_by)
         owner.acquaintances.remove(subject)
         owner.enemies.add(subject)
         # Update the salience value owner has for subject (not vice versa, because relationships
@@ -446,7 +446,7 @@ class Friendship(Relationship):
         @param subject: The other person to whom the conception pertains.
         @param preceded_by: An Acquaintance relationship that preceded this, if any.
         """
-        super(Friendship, self).__init__(owner, subject, preceded_by)
+        super().__init__(owner, subject, preceded_by)
         owner.acquaintances.remove(subject)
         owner.friends.add(subject)
         # Update the salience value owner has for subject (not vice versa, because relationships

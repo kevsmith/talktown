@@ -59,7 +59,7 @@ class Feature(float):
         @param inherited_from: The parent from whom this memory capability was
                                inherited, if any.
         """
-        super(Feature, self).__init__()
+        super().__init__()
         self.inherited_from = inherited_from
 
     def __new__(cls, value, inherited_from):

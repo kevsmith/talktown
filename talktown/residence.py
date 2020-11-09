@@ -98,9 +98,9 @@ class Apartment(DwellingPlace):
     """An individual apartment unit in an apartment building in a town."""
 
     def __init__(self, apartment_complex, lot, unit_number):
+        super().__init__(lot, owners=(apartment_complex.owner.person,))
         self.complex = apartment_complex
         self.unit_number = unit_number
-        super(Apartment, self).__init__(lot, owners=(apartment_complex.owner.person,))
         self.address = self._init_generate_address()
 
     def _init_generate_address(self):
@@ -117,6 +117,6 @@ class House(DwellingPlace):
     """
 
     def __init__(self, lot, construction):
-        super(House, self).__init__(lot, owners=construction.subjects)
+        super().__init__(lot, owners=construction.subjects)
         self.construction = construction
         self.lot.building = self

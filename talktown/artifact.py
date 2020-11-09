@@ -23,7 +23,7 @@ class Gravestone(Artifact):
 
     def __init__(self, subject):
         """Initialize a Gravestone object."""
-        super(Gravestone, self).__init__()
+        super().__init__()
         self.subject = subject
         if self.subject.extended_family:
             self.header = GravestoneDetails.a_header() + '\n'

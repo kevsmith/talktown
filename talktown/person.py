@@ -1993,7 +1993,7 @@ class PersonExNihilo(Person):
     """
 
     def __init__(self, sim, job_opportunity_impetus, spouse_already_generated):
-        super(PersonExNihilo, self).__init__(sim, birth=None)
+        super().__init__(sim, birth=None)
         # Potentially overwrite sex set by Person.__init__()
         if spouse_already_generated:
             self.male, self.female = self._override_sex(spouse=spouse_already_generated)

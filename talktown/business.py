@@ -680,7 +680,7 @@ class ApartmentComplex(Business):
         # this object has its units attributed -- this is because new employees
         # hired to work here may actually move in during the larger init() call
         self.units = []
-        super(ApartmentComplex, self).__init__(owner)
+        super().__init__(owner)
         self.units = self._init_apartment_units()
 
     def _init_apartment_units(self):
@@ -734,7 +734,7 @@ class Bakery(Business):
 
         @param owner: The owner of this business.
         """
-        super(Bakery, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Bank(Business):
@@ -745,7 +745,7 @@ class Bank(Business):
 
         @param owner: The owner of this business.
         """
-        super(Bank, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Bar(Business):
@@ -756,7 +756,7 @@ class Bar(Business):
 
         @param owner: The owner of this business.
         """
-        super(Bar, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Barbershop(Business):
@@ -767,7 +767,7 @@ class Barbershop(Business):
 
         @param owner: The owner of this business.
         """
-        super(Barbershop, self).__init__(owner)
+        super().__init__(owner)
 
 
 class BlacksmithShop(Business):
@@ -778,7 +778,7 @@ class BlacksmithShop(Business):
 
         @param owner: The owner of this business.
         """
-        super(BlacksmithShop, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Brewery(Business):
@@ -789,7 +789,7 @@ class Brewery(Business):
 
         @param owner: The owner of this business.
         """
-        super(Brewery, self).__init__(owner)
+        super().__init__(owner)
 
 
 class BusDepot(Business):
@@ -800,7 +800,7 @@ class BusDepot(Business):
 
         @param owner: The owner of this business.
         """
-        super(BusDepot, self).__init__(owner)
+        super().__init__(owner)
 
 
 class ButcherShop(Business):
@@ -811,7 +811,7 @@ class ButcherShop(Business):
 
         @param owner: The owner of this business.
         """
-        super(ButcherShop, self).__init__(owner)
+        super().__init__(owner)
 
 
 class CandyStore(Business):
@@ -822,7 +822,7 @@ class CandyStore(Business):
 
         @param owner: The owner of this business.
         """
-        super(CandyStore, self).__init__(owner)
+        super().__init__(owner)
 
 
 class CarpentryCompany(Business):
@@ -833,7 +833,7 @@ class CarpentryCompany(Business):
 
         @param owner: The owner of this business.
         """
-        super(CarpentryCompany, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Cemetery(Business):
@@ -841,7 +841,7 @@ class Cemetery(Business):
 
     def __init__(self, owner):
         """Initialize a Cemetery object."""
-        super(Cemetery, self).__init__(owner)
+        super().__init__(owner)
         self.town.cemetery = self
         self.plots = {}
 
@@ -863,7 +863,7 @@ class CityHall(Business):
 
         @param owner: The owner of this business.
         """
-        super(CityHall, self).__init__(owner)
+        super().__init__(owner)
         self.town.city_hall = self
 
 
@@ -875,7 +875,7 @@ class ClothingStore(Business):
 
         @param owner: The owner of this business.
         """
-        super(ClothingStore, self).__init__(owner)
+        super().__init__(owner)
 
 
 class CoalMine(Business):
@@ -886,7 +886,7 @@ class CoalMine(Business):
 
         @param owner: The owner of this business.
         """
-        super(CoalMine, self).__init__(owner)
+        super().__init__(owner)
 
 
 class ConstructionFirm(Business):
@@ -897,7 +897,7 @@ class ConstructionFirm(Business):
 
         @param owner: The owner of this business.
         """
-        super(ConstructionFirm, self).__init__(owner)
+        super().__init__(owner)
 
     @property
     def house_constructions(self):
@@ -926,7 +926,7 @@ class Dairy(Business):
 
         @param owner: The owner of this business.
         """
-        super(Dairy, self).__init__(owner)
+        super().__init__(owner)
 
 
 class DayCare(Business):
@@ -937,7 +937,7 @@ class DayCare(Business):
 
         @param owner: The owner of this business.
         """
-        super(DayCare, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Deli(Business):
@@ -948,7 +948,7 @@ class Deli(Business):
 
         @param owner: The owner of this business.
         """
-        super(Deli, self).__init__(owner)
+        super().__init__(owner)
 
 
 class DentistOffice(Business):
@@ -959,7 +959,7 @@ class DentistOffice(Business):
 
         @param owner: The owner of this business.
         """
-        super(DentistOffice, self).__init__(owner)
+        super().__init__(owner)
 
 
 class DepartmentStore(Business):
@@ -970,7 +970,7 @@ class DepartmentStore(Business):
 
         @param owner: The owner of this business.
         """
-        super(DepartmentStore, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Diner(Business):
@@ -981,7 +981,7 @@ class Diner(Business):
 
         @param owner: The owner of this business.
         """
-        super(Diner, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Distillery(Business):
@@ -992,7 +992,7 @@ class Distillery(Business):
 
         @param owner: The owner of this business.
         """
-        super(Distillery, self).__init__(owner)
+        super().__init__(owner)
 
 
 class DrugStore(Business):
@@ -1003,7 +1003,7 @@ class DrugStore(Business):
 
         @param owner: The owner of this business.
         """
-        super(DrugStore, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Farm(Business):
@@ -1014,7 +1014,7 @@ class Farm(Business):
 
         @param owner: The owner of this business.
         """
-        super(Farm, self).__init__(owner)
+        super().__init__(owner)
 
 
 class FireStation(Business):
@@ -1025,7 +1025,7 @@ class FireStation(Business):
 
         @param owner: The owner of this business.
         """
-        super(FireStation, self).__init__(owner)
+        super().__init__(owner)
         self.town.fire_station = self
 
 
@@ -1037,7 +1037,7 @@ class Foundry(Business):
 
         @param owner: The owner of this business.
         """
-        super(Foundry, self).__init__(owner)
+        super().__init__(owner)
 
 
 class FurnitureStore(Business):
@@ -1048,7 +1048,7 @@ class FurnitureStore(Business):
 
         @param owner: The owner of this business.
         """
-        super(FurnitureStore, self).__init__(owner)
+        super().__init__(owner)
 
 
 class GeneralStore(Business):
@@ -1059,7 +1059,7 @@ class GeneralStore(Business):
 
         @param owner: The owner of this business.
         """
-        super(GeneralStore, self).__init__(owner)
+        super().__init__(owner)
 
 
 class GroceryStore(Business):
@@ -1070,7 +1070,7 @@ class GroceryStore(Business):
 
         @param owner: The owner of this business.
         """
-        super(GroceryStore, self).__init__(owner)
+        super().__init__(owner)
 
 
 class HardwareStore(Business):
@@ -1081,7 +1081,7 @@ class HardwareStore(Business):
 
         @param owner: The owner of this business.
         """
-        super(HardwareStore, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Hospital(Business):
@@ -1092,7 +1092,7 @@ class Hospital(Business):
 
         @param owner: The owner of this business.
         """
-        super(Hospital, self).__init__(owner)
+        super().__init__(owner)
         self.town.hospital = self
 
     @property
@@ -1113,7 +1113,7 @@ class Hotel(Business):
 
         @param owner: The owner of this business.
         """
-        super(Hotel, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Inn(Business):
@@ -1124,7 +1124,7 @@ class Inn(Business):
 
         @param owner: The owner of this business.
         """
-        super(Inn, self).__init__(owner)
+        super().__init__(owner)
 
 
 class InsuranceCompany(Business):
@@ -1135,7 +1135,7 @@ class InsuranceCompany(Business):
 
         @param owner: The owner of this business.
         """
-        super(InsuranceCompany, self).__init__(owner)
+        super().__init__(owner)
 
 
 class JeweleryShop(Business):
@@ -1146,7 +1146,7 @@ class JeweleryShop(Business):
 
         @param owner: The owner of this business.
         """
-        super(JeweleryShop, self).__init__(owner)
+        super().__init__(owner)
 
 
 class LawFirm(Business):
@@ -1157,7 +1157,7 @@ class LawFirm(Business):
 
         @param owner: The owner of this business.
         """
-        super(LawFirm, self).__init__(owner)
+        super().__init__(owner)
 
     def rename_due_to_lawyer_change(self):
         """Rename this company due to the hiring of a new lawyer."""
@@ -1205,7 +1205,7 @@ class OptometryClinic(Business):
 
         @param owner: The owner of this business.
         """
-        super(OptometryClinic, self).__init__(owner)
+        super().__init__(owner)
 
 
 class PaintingCompany(Business):
@@ -1213,7 +1213,7 @@ class PaintingCompany(Business):
 
     def __init__(self, owner):
         """Initialize a PaintingCompany object."""
-        super(PaintingCompany, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Park(Business):
@@ -1221,7 +1221,7 @@ class Park(Business):
 
     def __init__(self, owner):
         """Initialize a Park object."""
-        super(Park, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Pharmacy(Business):
@@ -1229,7 +1229,7 @@ class Pharmacy(Business):
 
     def __init__(self, owner):
         """Initialize a Pharmacy object."""
-        super(Pharmacy, self).__init__(owner)
+        super().__init__(owner)
 
 
 class PlasticSurgeryClinic(Business):
@@ -1240,7 +1240,7 @@ class PlasticSurgeryClinic(Business):
 
         @param owner: The owner of this business.
         """
-        super(PlasticSurgeryClinic, self).__init__(owner)
+        super().__init__(owner)
 
 
 class PlumbingCompany(Business):
@@ -1251,7 +1251,7 @@ class PlumbingCompany(Business):
 
         @param owner: The owner of this business.
         """
-        super(PlumbingCompany, self).__init__(owner)
+        super().__init__(owner)
 
 
 class PoliceStation(Business):
@@ -1262,7 +1262,7 @@ class PoliceStation(Business):
 
         @param owner: The owner of this business.
         """
-        super(PoliceStation, self).__init__(owner)
+        super().__init__(owner)
         self.town.police_station = self
 
 
@@ -1274,7 +1274,7 @@ class Quarry(Business):
 
         @param owner: The owner of this business.
         """
-        super(Quarry, self).__init__(owner)
+        super().__init__(owner)
 
 
 class RealtyFirm(Business):
@@ -1285,7 +1285,7 @@ class RealtyFirm(Business):
 
         @param owner: The owner of this business.
         """
-        super(RealtyFirm, self).__init__(owner)
+        super().__init__(owner)
 
     @property
     def home_sales(self):
@@ -1305,7 +1305,7 @@ class Restaurant(Business):
 
         @param owner: The owner of this business.
         """
-        super(Restaurant, self).__init__(owner)
+        super().__init__(owner)
 
 
 class School(Business):
@@ -1316,7 +1316,7 @@ class School(Business):
 
         @param owner: The owner of this business.
         """
-        super(School, self).__init__(owner)
+        super().__init__(owner)
         self.town.school = self
 
 
@@ -1328,7 +1328,7 @@ class ShoemakerShop(Business):
 
         @param owner: The owner of this business.
         """
-        super(ShoemakerShop, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Supermarket(Business):
@@ -1339,7 +1339,7 @@ class Supermarket(Business):
 
         @param owner: The owner of this business.
         """
-        super(Supermarket, self).__init__(owner)
+        super().__init__(owner)
 
 
 class TailorShop(Business):
@@ -1350,7 +1350,7 @@ class TailorShop(Business):
 
         @param owner: The owner of this business.
         """
-        super(TailorShop, self).__init__(owner)
+        super().__init__(owner)
 
 
 class TattooParlor(Business):
@@ -1361,7 +1361,7 @@ class TattooParlor(Business):
 
         @param owner: The owner of this business.
         """
-        super(TattooParlor, self).__init__(owner)
+        super().__init__(owner)
 
 
 class Tavern(Business):
@@ -1372,7 +1372,7 @@ class Tavern(Business):
 
         @param owner: The owner of this business.
         """
-        super(Tavern, self).__init__(owner)
+        super().__init__(owner)
 
 
 class TaxiDepot(Business):
@@ -1383,7 +1383,7 @@ class TaxiDepot(Business):
 
         @param owner: The owner of this business.
         """
-        super(TaxiDepot, self).__init__(owner)
+        super().__init__(owner)
 
 
 class University(Business):
@@ -1394,5 +1394,5 @@ class University(Business):
 
         @param owner: The owner of this business.
         """
-        super(University, self).__init__(owner)
+        super().__init__(owner)
         self.town.university = self
