@@ -81,7 +81,7 @@ class Town:
             if density > highest_density:
                 highest_density = density
                 self.downtown = lot
-        self.name = None  # Gets set by Simulation.establish_setting() so that it may be named after an early settler
+        self.name = ""  # Gets set by Simulation.establish_setting() so that it may be named after an early settler
         # Finally, reset the neighboring lots to all lots to be the other
         # lots on the same city block
         for lot in self.lots:
@@ -536,7 +536,7 @@ class Town:
     @property
     def buildings(self):
         """Return all businesses and houses (not apartment units) in this town."""
-        houses = {d for d in self.dwelling_places if d.__class__ is residence.House}
+        houses = {d for d in self.dwelling_places if  isinstance(d, residence.House)}
         return houses | self.companies
 
     @property
@@ -723,7 +723,6 @@ class Block:
         self.street = street
         self.street.blocks.append(self)
         self.lots = []
-        self.type = 'block'
         # Helper attributes for rendering a town
         if self.street.direction in ('N', 'S'):
             self.starting_coordinates = (self.street.number, self.number/100)

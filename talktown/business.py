@@ -27,7 +27,6 @@ class Business:
         self.id = owner.sim.current_place_id
         owner.sim.current_place_id += 1
         config = owner.sim.config
-        self.type = "business"
         self.construction = None #Businesscontruction event
         # 'Demise' specifies a year at which point it is highly likely this business will close
         # down (due to being anachronistic at that point, e.g., a dairy past 1930)
@@ -346,7 +345,7 @@ class Business:
     def _rate_all_occupied_lots(self):
         """Rate all lots currently occupied by homes for their desirability as business locations."""
         lots_with_homes_on_them = (
-            l for l in self.town.lots if l.building and l.building.type == 'residence'
+            l for l in self.town.lots if l.building and isinstance(l.building, DwellingPlace)
         )
         scores = {}
         for lot in lots_with_homes_on_them:

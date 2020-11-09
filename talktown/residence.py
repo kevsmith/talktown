@@ -11,7 +11,6 @@ class DwellingPlace:
         """
         self.id = owners[0].sim.current_place_id
         owners[0].sim.current_place_id += 1
-        self.type = "residence"
         self.town = lot.town
         self.town.dwelling_places.add(self)
         self.lot = lot
@@ -36,16 +35,8 @@ class DwellingPlace:
 
     def __str__(self):
         """Return string representation."""
-        if self.demolition or self.apartment and self.complex.demolition:
-            if self.house:
-                construction_year = self.construction.year
-                demolition_year = self.demolition.year
-            else:
-                construction_year = self.complex.construction.year
-                demolition_year = self.complex.demolition.year
-            return "{}, {} ({}-{})".format(self.name, self.address, construction_year, demolition_year)
-        else:
-            return "{}, {}".format(self.name, self.address)
+        return "{}, {}".format(self.name, self.address)
+
 
     @property
     def locked(self):
@@ -107,6 +98,14 @@ class Apartment(DwellingPlace):
         """Generate an address, given the lot building is on."""
         return "{0} (Unit #{1})".format(self.lot.address, self.unit_number)
 
+    def __str__(self):
+        """Return string representation."""
+        if self.complex.demolition:
+            construction_year = self.complex.construction.year
+            demolition_year = self.complex.demolition.year
+            return "{}, {} ({}-{})".format(self.name, self.address, construction_year, demolition_year)
+        else:
+            return "{}, {}".format(self.name, self.address)
 
 class House(DwellingPlace):
     """A house in a town.
@@ -120,3 +119,12 @@ class House(DwellingPlace):
         super().__init__(lot, owners=construction.subjects)
         self.construction = construction
         self.lot.building = self
+
+    def __str__(self):
+        """Return string representation."""
+        if self.demolition:
+            construction_year = self.construction.year
+            demolition_year = self.demolition.year
+            return "{}, {} ({}-{})".format(self.name, self.address, construction_year, demolition_year)
+        else:
+            return "{}, {}".format(self.name, self.address)

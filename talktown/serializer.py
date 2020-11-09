@@ -40,6 +40,7 @@ def serialize_to_file(sim: Simulation, filename: pathlib.Path):
 def serialize_town(town):
     """Serialize Talk of the Town town"""
     output = {
+        "name": town.name,
         "founded": town.founded,
         "places": {},
         "people": {},
@@ -134,7 +135,7 @@ def serialize_dwelling(d):
     """Serialize DwellingPlace object"""
     output = {
         "id": d.id,
-        "type": d.type,
+        "type": d.__class__.__name__,
         "town": d.town.name,
         "lot": d.lot.id if d.lot else -1,
         "house": d.house,
@@ -182,7 +183,7 @@ def serialize_block(b):
         "id": id(b),
         "number": b.number,
         "lots": [l.id for l in b.lots],
-        "type": b.type,
+        "type": b.__class__.__name__,
     }
     return output
 
@@ -231,7 +232,7 @@ def serialize_person(p):
     """Serialize Person object"""
     output = {
             "id": p.id,
-            "type": p.type,
+            "type": p.__class__.__name__,
             "birth": p.birth.event_id if p.birth else -1,
             "town": p.town.name if p.town else "",
             "biological_mother": p.biological_mother.id if p.biological_mother else -1,
@@ -239,6 +240,8 @@ def serialize_person(p):
             "biological_father": p.biological_father.id if p.biological_father else -1,
             "father": p.father.id if p.father else -1,
             "parents": [x.id for x in p.parents],
+            "birth_day": p.birthday[0],
+            "birth_month": p.birthday[1],
             "birth_year": p.birth_year,
             "age": p.age,
             "adult": p.adult,
@@ -459,7 +462,7 @@ def serialize_face(f):
 def serialize_relationship(r):
     """Serialize Relationship object"""
     output = {
-        "type": r.type,
+        "type": r.__class__.__name__,
         "owner": r.owner.id if r.owner else -1,
         "subject": r.subject.id if r.subject else -1,
         "preceded_by": id(r.preceded_by) if r.preceded_by else -1,
@@ -759,7 +762,7 @@ def serialize_business(b):
     """Serialize Business object"""
     output = {
         "id": b.id,
-        "type": b.type,
+        "type": b.__class__.__name__,
         "demise": b.demise,
         "services": list(b.services),
         "town": b.town.name,

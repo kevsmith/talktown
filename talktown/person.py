@@ -29,7 +29,6 @@ class Person:
         self.sim = sim
         self.id = self.sim.current_person_id
         self.sim.current_person_id += 1
-        self.type = "person"
         self.birth = birth
         if birth:
             self.town = self.birth.town

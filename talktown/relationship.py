@@ -8,7 +8,6 @@ class Relationship:
         @param subject: The other person to whom the conception pertains.
         @param preceded_by: A relationship that preceded this, if any.
         """
-        self.type = self.__class__.__name__.lower()
         self.owner = owner
         self.subject = subject
         self.preceded_by = preceded_by
@@ -206,7 +205,7 @@ class Relationship:
     def __str__(self):
         """Return string representation."""
         return "{}'s {} with {} (charge: {}, spark: {})".format(
-            self.owner.name, self.type, self.subject.name, self.charge, self.spark if self.spark != 0 else 'N/A'
+            self.owner.name, self.__class__.__name__, self.subject.name, self.charge, self.spark if self.spark != 0 else 'N/A'
         )
 
     def reset_spark_increment(self):
@@ -296,9 +295,9 @@ class Relationship:
         self.charge = self.owner.sim.config.function_to_normalize_raw_charge(
             n_simulated_timesteps=self.owner.sim.n_simulated_timesteps, raw_charge=self.raw_charge
         )
-        if self.type != "friendship" and self.charge > config.charge_threshold_friendship:
+        if not isinstance(self, Friendship) and self.charge > config.charge_threshold_friendship:
             Friendship(owner=owner, subject=subject, preceded_by=self)
-        elif self.type != "enmity" and self.charge < config.charge_threshold_enmity:
+        elif not isinstance(self, Enmity) and self.charge < config.charge_threshold_enmity:
             Enmity(owner=owner, subject=subject, preceded_by=self)
         # Progress spark, possibly leading to a
         self.raw_spark_increment *= config.spark_decay_rate
@@ -385,7 +384,7 @@ class Relationship:
     def outline(self):
         """Outline this relationship for display during gameplay."""
         outline_str = ""
-        outline_str += "Type: {}\n".format(self.type)
+        outline_str += "Type: {}\n".format(self.__class__.__name__)
         outline_str += "Relation to me: {}\n".format(self.owner.relation_to_me(self.subject))
         outline_str += "First met: {}\n".format(self.first_met_str)
         outline_str += "Last met: {}\n".format(self.last_met_str)
