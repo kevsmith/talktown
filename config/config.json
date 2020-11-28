@@ -1,0 +1,9 @@
+{
+    "basic": {
+        "seed": 12
+    },
+    "story_recognition": {
+        "spark_threshold_for_being_captivated": 20,
+        "minimum_number_of_disliked_people_to_be_misanthrope": 10
+    }
+}

@@ -1,3 +1,8 @@
+import pathlib
+import json
+from queue import Queue
+import random
+
 from .appearance_config import AppearanceConfig
 from .artifact_config import ArtifactConfig
 from .basic_config import BasicConfig
@@ -22,7 +27,7 @@ ALL_CONFIG_FILES = [
 class Config:
     """A class that aggregates all author-defined configuration parameters."""
 
-    def __init__(self):
+    def __init__(self, config_json=None):
         self.settings = {}
         # This short script will slurp up all the parameters included in the various configuration
         # files -- specified as attributes on the classes defined in those files -- and set those
@@ -34,6 +39,43 @@ class Config:
                 self.settings[parameter] = value
                 self.__dict__[parameter] = value
 
+        if config_json is not None:
+            self.load(config_json)
+
     def get(self, key):
         """Retrieve configuration value"""
         return self.settings[key]
+
+    def load(self, filepath):
+        """Loads configuration from JSON file(s)"""
+        # Other config files referenced by this one
+        referenced_files = Queue()
+
+        referenced_files.put(filepath)
+
+        # Run BFS on the file references
+        while not referenced_files.empty():
+
+            filename = referenced_files.get()
+
+            if not isinstance(filename, pathlib.Path):
+                filename = pathlib.Path(filename)
+
+            if not str(filename).lower().endswith('.json'):
+                raise ValueError("Given file {} needs to have a .json extension".format(filename))
+
+            with open(filename, 'r') as f:
+                config_data = json.load(f)
+
+                if 'references' in config_data:
+                    [referenced_files.put(ref) for ref in config_data['references']]
+
+                # Overwrite default parameters
+                # Basic config parameters are at the root level of the file
+                # others are within nested dictionaries
+
+                if 'basic' in config_data:
+
+                    if 'seed' in config_data['basic']:
+                        self.settings['seed'] = config_data['basic']['seed']
+                        self.__dict__['seed'] = config_data['basic']['seed']

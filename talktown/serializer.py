@@ -16,11 +16,7 @@ from .simulation import Simulation
 def serialize(sim: Simulation):
     """Serialize Talk of the Town simulation to JSON str"""
     output = {}
-    output['year'] = sim.year
-    output['true_year'] = sim.true_year
-    output['ordinal_date'] = sim.ordinal_date
-    output['month'] = sim.month
-    output['day'] = sim.day
+    output['current_date'] = sim.current_date.strftime('%Y-%m-%d')
     output['time_of_day'] = sim.time_of_day
     output['town'] = serialize_town(sim.town)
     output['events'] = serialize_events(sim.events)

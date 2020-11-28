@@ -1,5 +1,6 @@
 import random
 import heapq
+from .place import Place
 from .occupation import Architect, Lawyer, Apprentice
 from .person import PersonExNihilo
 from .residence import DwellingPlace, House, Apartment
@@ -12,7 +13,7 @@ from .corpora import Names
 # appropriate.
 
 
-class Business:
+class Business(Place):
     """A business in a town (representing both the notion of a company and its physical building).
 
     Attributes:
@@ -24,8 +25,7 @@ class Business:
 
         @param owner: The owner of this business.
         """
-        self.id = owner.sim.current_place_id
-        owner.sim.current_place_id += 1
+        super().__init__()
         config = owner.sim.config
         self.construction = None #Businesscontruction event
         # 'Demise' specifies a year at which point it is highly likely this business will close
@@ -35,7 +35,7 @@ class Business:
         self.services = config.services_provided_by_business_of_type[self.__class__]
         self.town = owner.sim.town
         self.town.companies.add(self)
-        self.founded = self.town.sim.year
+        self.founded = self.town.sim.current_date.year
         if self.town.vacant_lots or self.__class__ in config.companies_that_get_established_on_tracts:
             self.lot = self._init_choose_vacant_lot()
             demolition_preceding_construction_of_this_business = None
@@ -201,14 +201,14 @@ class Business:
             name = "{0} {1}".format(class_to_company_name_component[LawFirm], suffix)
         elif self.__class__ is Bar:
             name = Names.a_bar_name()
-            # if self.town.sim.year > 1968:
+            # if self.town.sim.current_date.year > 1968:
             #     # Choose a name from the corpus of bar names
             #     name = Names.a_bar_name()
             # else:
             #     name = self.owner.person.last_name + "'s"
         elif self.__class__ is Restaurant:
             name = Names.a_restaurant_name()
-            # if self.town.sim.year > 1968:
+            # if self.town.sim.current_date.year > 1968:
             #     # Choose a name from the corpus of restaurant names
             #     name = Names.a_restaurant_name()
             # else:
@@ -465,7 +465,7 @@ class Business:
         """Return a string representing this business's sign."""
         if self.__class__ in self.town.sim.config.public_company_types:
             return self.name
-        elif self.town.sim.year - self.founded > 8:
+        elif self.town.sim.current_date.year - self.founded > 8:
             return '{}, since {}'.format(self.name, self.founded)
         else:
             return self.name

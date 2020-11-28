@@ -15,13 +15,13 @@ class Relationship:
         self.where_they_met = owner.location
         self.when_they_met = owner.sim.date
         self.first_met_str = '{date} at {location}'.format(
-            date=owner.sim.year, location=owner.location.name
+            date=owner.sim.current_date.year, location=owner.location.name
         )
         self.where_they_last_met = owner.location  # These change as appropriate
         self.when_they_last_met = owner.sim.date
         self.last_met_str_base = (
-            '{date} at {location}'.format(date=owner.sim.year, location=owner.location.name),
-            self.owner.sim.ordinal_date
+            '{date} at {location}'.format(date=owner.sim.current_date.year, location=owner.location.name),
+            self.owner.sim.current_date.toordinal()
         )
         self.total_interactions = 0
         # Set this as the primary relationship owner has with subject
@@ -279,8 +279,8 @@ class Relationship:
         self.where_they_last_met = owner.location  # Changes as appropriate
         self.when_they_last_met = owner.sim.date
         self.last_met_str_base = (
-            '{date} at {location}'.format(date=owner.sim.year, location=owner.location.name),
-            self.owner.sim.ordinal_date
+            '{date} at {location}'.format(date=owner.sim.current_date.year, location=owner.location.name),
+            self.owner.sim.current_date.toordinal()
         )
         # Increment salience
         self.owner.salience_of_other_people[self.subject] += config.salience_increment_for_social_interaction
@@ -378,7 +378,7 @@ class Relationship:
         """Return a string representing the last time these two met."""
         base_str, ordinal_date_they_last_met = self.last_met_str_base
         return "{} ({} days ago)".format(
-            base_str, self.owner.sim.ordinal_date-ordinal_date_they_last_met
+            base_str, self.owner.sim.current_date.toordinal()-ordinal_date_they_last_met
         )
 
     def outline(self):

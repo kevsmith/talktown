@@ -16,7 +16,7 @@ class Occupation:
         self.company = company
         self.shift = shift
         self.company.employees.add(self)
-        self.start_date = person.sim.year
+        self.start_date = person.sim.current_date.year
         self.hiring = None  # event.Hiring object holding data about the hiring; gets set by that object's __init__()
         self.end_date = None  # Changed by self.terminate
         self.terminus = None  # Changed by self.terminate
@@ -82,7 +82,7 @@ class Occupation:
     @property
     def years_experience(self):
         """Return years this person has had this occupation."""
-        return self.person.sim.year - self.start_date
+        return self.person.sim.current_date.year - self.start_date
 
     @property
     def has_a_boss(self):
@@ -91,7 +91,7 @@ class Occupation:
 
     def terminate(self, reason):
         """Terminate this occupation, due to another hiring, retirement, or death or departure."""
-        self.end_date = self.person.sim.year
+        self.end_date = self.person.sim.current_date.year
         self.terminus = reason
         self.company.employees.remove(self)
         self.company.former_employees.add(self)

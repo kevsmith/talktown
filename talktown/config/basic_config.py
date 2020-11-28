@@ -7,25 +7,13 @@ class BasicConfig:
     # across simulation instances, and if the codebase hasn't changed, the towns
     # generated for the simulation instances will be identical
     seed = int(random.random()*9999999)
-    random.seed(seed)
+
     # Date that town generation starts
-    year_worldgen_begins = 1839
-    month_worldgen_begins = 8
-    day_of_month_worldgen_begins = 19
-    date_worldgen_begins = (  # Do not alter
-        year_worldgen_begins,
-        month_worldgen_begins,
-        day_of_month_worldgen_begins
-    )
+    date_worldgen_begins = "1839-8-19"
+
     # Date that town generation ends
-    year_worldgen_ends = 1979
-    month_worldgen_ends = 8
-    day_of_month_worldgen_ends = 19
-    date_worldgen_ends = (  # Do not alter
-        year_worldgen_ends,
-        month_worldgen_ends,
-        day_of_month_worldgen_ends
-    )
+    date_worldgen_ends = "1979-8-19"
+
     # Number of timesteps to simulate each year during world generation (each day in that span will
     # have two timesteps -- day, night -- and this parameter specifies how many will actually be simulated)
     number_of_timesteps_to_simulate_a_year = 10.0  # Setting for Bad News: 3.6

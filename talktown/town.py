@@ -23,7 +23,7 @@ class Town:
         self.apartment_complexes = set()
         self.other_businesses = set()
         self.houses = set()
-        self.founded = sim.year
+        self.founded = sim.current_date.year
         self.settlers = set()  # Will get added to during Simulation.establish_setting()
         self.residents = set()
         self.departed = set()  # People who left the town (i.e., left the simulation)

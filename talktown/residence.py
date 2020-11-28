@@ -1,7 +1,7 @@
 import random
+from .place import Place
 
-
-class DwellingPlace:
+class DwellingPlace(Place):
     """A dwelling place in a town."""
 
     def __init__(self, lot, owners):
@@ -9,8 +9,7 @@ class DwellingPlace:
 
         @param lot: A Lot object representing the lot this building is on.
         """
-        self.id = owners[0].sim.current_place_id
-        owners[0].sim.current_place_id += 1
+        super().__init__()
         self.town = lot.town
         self.town.dwelling_places.add(self)
         self.lot = lot

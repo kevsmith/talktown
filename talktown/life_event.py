@@ -51,7 +51,7 @@ class Adoption(Event):
         @param subject: The adoptee.
         @param adoptive_parents: The adoptive parent(s).
         """
-        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
+        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.current_date.year))
         self.town = adoptive_parents[0].town  # May be None if parents not in the town yet
         self.subject = subject
         self.subject.adoption = self  # Could there be multiple, actually?
@@ -79,7 +79,7 @@ class Birth(Event):
 
     def __init__(self, mother, doctor):
         """Initialize a Birth object."""
-        super().__init__(mother.sim.assign_event_number(new_event=self), mother.sim.get_random_day_of_year(year=mother.sim.year))
+        super().__init__(mother.sim.assign_event_number(new_event=self), mother.sim.get_random_day_of_year(year=mother.sim.current_date.year))
         self.town = mother.town
         self.biological_mother = mother
         self.mother = mother
@@ -324,7 +324,7 @@ class BusinessConstruction(Event):
 
     def __init__(self, subject, business, architect, demolition_that_preceded_this=None):
         """Initialize a BusinessConstruction object."""
-        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
+        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.current_date.year))
         self.subject = subject
         self.architect = architect
         self.business = business
@@ -357,7 +357,7 @@ class BusinessClosure(Event):
 
     def __init__(self, business, reason=None):
         """Initialize a Demolition object."""
-        super().__init__(business.town.sim.assign_event_number(new_event=self), business.town.sim.get_random_day_of_year(year=business.town.sim.year))
+        super().__init__(business.town.sim.assign_event_number(new_event=self), business.town.sim.get_random_day_of_year(year=business.town.sim.current_date.year))
         self.town = business.town
         self.business = business
         self.reason = reason  # Potentially this will point to a object for the owner's Retirement
@@ -400,7 +400,7 @@ class Death(Event):
 
     def __init__(self, subject, mortician, cause_of_death):
         """Initialize a Death object."""
-        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
+        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.current_date.year))
         self.town = subject.town
         self.subject = subject
         self.subject.death_year = self.date.year
@@ -482,7 +482,7 @@ class Demolition(Event):
 
     def __init__(self, building, demolition_company, reason=None):
         """Initialize a Demolition object."""
-        super().__init__(building.town.sim.assign_event_number(new_event=self), building.town.sim.get_random_day_of_year(year=building.town.sim.year))
+        super().__init__(building.town.sim.assign_event_number(new_event=self), building.town.sim.get_random_day_of_year(year=building.town.sim.current_date.year))
         self.town = building.town
         self.building = building
         self.demolition_company = demolition_company  # ConstructionFirm handling the demolition
@@ -530,7 +530,7 @@ class Departure(Event):
 
     def __init__(self, subject):
         """Initialize a Departure object."""
-        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
+        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.current_date.year))
         self.subject = subject
         subject.town.residents.remove(subject)
         subject.town.departed.add(subject)
@@ -585,7 +585,7 @@ class Divorce(Event):
 
     def __init__(self, subjects, lawyer):
         """Initialize a divorce object."""
-        super().__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.year))
+        super().__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.current_date.year))
         self.town = subjects[0].town
         self.subjects = subjects
         self.lawyer = lawyer
@@ -770,7 +770,7 @@ class Hiring(Event):
 
     def __init__(self, subject, company, occupation):
         """Initialize a Hiring object."""
-        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
+        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.current_date.year))
         self.subject = subject
         self.company = company
         self.old_occupation = subject.occupation
@@ -794,7 +794,7 @@ class HomePurchase(Event):
 
     def __init__(self, subjects, home, realtor):
         """Initialize a HomePurchase object."""
-        super().__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.year))
+        super().__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.current_date.year))
         self.town = subjects[0].town
         self.subjects = subjects
         for subject in subjects:
@@ -827,7 +827,7 @@ class HouseConstruction(Event):
 
     def __init__(self, subjects, architect, lot, demolition_that_preceded_this=None):
         """Initialize a HouseConstruction object."""
-        super().__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.year))
+        super().__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.current_date.year))
         self.subjects = subjects
         self.architect = architect
         self.house = House(lot=lot, construction=self)
@@ -864,7 +864,7 @@ class LayOff(Event):
 
     def __init__(self, subject, company, occupation):
         """Initialize a LayOff object."""
-        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
+        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.current_date.year))
         self.subject = subject
         subject.lay_offs.append(self)
         self.company = company
@@ -884,7 +884,7 @@ class Marriage(Event):
 
     def __init__(self, subjects):
         """Initialize a Marriage object."""
-        super().__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.year))
+        super().__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.current_date.year))
         self.town = subjects[0].town
         self.subjects = subjects
         self.names_at_time_of_marriage = (self.subjects[0].name, self.subjects[1].name)
@@ -913,7 +913,7 @@ class Marriage(Event):
         if self.terminus:
             duration = self.terminus.year - self.date.year
         else:
-            duration = self.subjects[0].sim.year-self.date.year
+            duration = self.subjects[0].sim.current_date.year-self.date.year
         return duration
 
     def _update_newlywed_attributes(self):
@@ -1048,7 +1048,7 @@ class Move(Event):
 
     def __init__(self, subjects, new_home, reason):
         """Initialize a Move object."""
-        super().__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.year))
+        super().__init__(subjects[0].sim.assign_event_number(new_event=self), subjects[0].sim.get_random_day_of_year(year=subjects[0].sim.current_date.year))
         self.subjects = subjects
         self.old_home = self.subjects[0].home  # May be None if newborn or person moved from outside the town
         self.new_home = new_home
@@ -1143,7 +1143,7 @@ class NameChange(Event):
 
     def __init__(self, subject, new_last_name, reason, lawyer):
         """Initialize a NameChange object."""
-        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
+        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.current_date.year))
         self.town = subject.town
         self.subject = subject
         self.old_last_name = subject.last_name
@@ -1180,7 +1180,7 @@ class Retirement(Event):
 
     def __init__(self, subject):
         """Initialize a Retirement object."""
-        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.year))
+        super().__init__(subject.sim.assign_event_number(new_event=self), subject.sim.get_random_day_of_year(year=subject.sim.current_date.year))
         self.subject = subject
         self.subject.retired = True
         self.subject.retirement = self

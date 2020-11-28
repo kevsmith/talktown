@@ -23,12 +23,15 @@ class Person:
         town (town.Town): Town this person was born in
     """
 
+    # This gets incremented each time a new person is born/generated,
+    # which affords a persistent ID for each person
+    next_id = 0
+
     def __init__(self, sim, birth):
         """Initialize a Person object."""
         # Set location and simplay instance
         self.sim = sim
-        self.id = self.sim.current_person_id
-        self.sim.current_person_id += 1
+        self.id = Person.next_id; Person.next_id += 1
         self.birth = birth
         if birth:
             self.town = self.birth.town
@@ -604,7 +607,7 @@ class Person:
     @property
     def years_i_lived_here(self):
         """Return the number of years this person has lived in this town"""
-        return self.sim.year - self.year_i_moved_here
+        return self.sim.current_date.year - self.year_i_moved_here
 
     @property
     def age_and_gender_description(self):
@@ -1374,8 +1377,8 @@ class Person:
         )
         if random.random() < chance_of_conception:
             female_partner.impregnated_by = self if female_partner is partner else partner
-            female_partner.conception_year = self.sim.year
-            female_partner.due_date = self.sim.ordinal_date + 270
+            female_partner.conception_year = self.sim.current_date.year
+            female_partner.due_date = self.sim.current_date.toordinal() + 270
             female_partner.pregnant = True
 
     def marry(self, partner):
@@ -1881,19 +1884,20 @@ class Person:
         """Check if it's this persons birth day; if it is, age them."""
         config = self.sim.config
         consider_leaving_town = False
-        self.age = age = self.sim.true_year - self.birth_year
+        self.age = age = self.sim.current_date.year - self.birth_year
+        #self.age = age = self.sim.true_year - self.birth_year
         # If you've just entered school age and your mother had been staying at
         # home to take care of you, she may now reenter the workforce
         try:
             if age == config.age_children_start_going_to_school and self.mother and not self.mother.intending_to_work:
-                if not random.random() < config.chance_mother_of_young_children_stays_home(year=self.sim.year):
+                if not random.random() < config.chance_mother_of_young_children_stays_home(year=self.sim.current_date.year):
                     self.mother.intending_to_work = True
         except AttributeError:
             # We're retconning, which means the mother doesn't even have the attribute 'intending_to_work'
             # set yet, which throws an error; because we're retconning, we don't even want to be
             # actively modeling whether she is in the workforce anyway
             pass
-        if age == config.age_people_start_working(year=self.sim.year):
+        if age == config.age_people_start_working(year=self.sim.current_date.year):
             self.in_the_workforce = True
             consider_leaving_town = True
         if age == 18:
@@ -2007,10 +2011,14 @@ class PersonExNihilo(Person):
         job_level = self.sim.config.job_levels[job_opportunity_impetus]
         self.birth_year = self._init_birth_year(job_level=job_level)
         # Set age given birth year that was attributed
-        self.age = self.sim.true_year - self.birth_year
+        # self.age = self.sim.true_year - self.birth_year
+        self.age = self.sim.current_date.year - self.birth_year
+
         self.adult = True if self.age >= 18 else False
         self.in_the_workforce = (
-            True if self.age >= self.sim.config.age_people_start_working(year=self.sim.true_year) else False
+            True if self.age >= self.sim.config.age_people_start_working(year=self.sim.current_date.year) else False
+
+            #True if self.age >= self.sim.config.age_people_start_working(year=self.sim.true_year) else False
         )
         # Determine a random birthday and add it to the sim's listing of all characters' birthdays
         self.birthday = self._get_random_birthday()
@@ -2090,7 +2098,8 @@ class PersonExNihilo(Person):
         """Generate a birth year for the founder of the town."""
         config = self.sim.config
         age_at_current_year_of_sim = config.age_of_town_founder
-        birth_year = self.sim.true_year - age_at_current_year_of_sim
+        birth_year = self.sim.current_date.year - age_at_current_year_of_sim
+        # birth_year = self.sim.true_year - age_at_current_year_of_sim
         return birth_year
 
     def _init_birth_year(self, job_level):
@@ -2099,7 +2108,8 @@ class PersonExNihilo(Person):
         age_at_current_year_of_sim = config.function_to_determine_person_ex_nihilo_age_given_job_level(
             job_level=job_level
         )
-        birth_year = self.sim.true_year - age_at_current_year_of_sim
+        birth_year = self.sim.current_date.year - age_at_current_year_of_sim
+        # birth_year = self.sim.true_year - age_at_current_year_of_sim
         return birth_year
 
     def _init_familial_attributes(self):
@@ -2134,7 +2144,9 @@ class PersonExNihilo(Person):
         )
         self._init_retcon_marriage(spouse=spouse)
         self._init_retcon_births_of_children()
-        self.sim.year = self.sim.true_year
+        # self.sim.current_date.year = self.sim.current_date.year
+
+        # self.sim.current_date.year = self.sim.true_year
 
     def _init_retcon_marriage(self, spouse):
         """Jump back in time to instantiate a marriage that began outside the town."""
@@ -2150,24 +2162,27 @@ class PersonExNihilo(Person):
             # to happen after the town has been founded
             marriage_date - self.birth_year < config.person_ex_nihilo_age_at_marriage_floor or
             marriage_date - spouse.birth_year < config.person_ex_nihilo_age_at_marriage_floor or
-            marriage_date >= self.sim.true_year
+            marriage_date >= self.sim.current_date.year
+            # marriage_date >= self.sim.true_year
         ):
             # If so, don't bother regenerating -- just set marriage year to last year and move on
-            marriage_date = self.sim.true_year - 1
-        self.sim.year = int(round(marriage_date))
+            marriage_date = self.sim.current_date.year - 1
+            # marriage_date = self.sim.true_year - 1
+        # self.sim.current_date.year = int(round(marriage_date))
         self.marry(spouse)
 
     def _init_retcon_births_of_children(self):
         """Simulate from marriage to the present day for children potentially being born."""
         config = self.sim.config
         # Simulate sex (and thus potentially birth) in marriage thus far
-        for year in range(self.marriage.year, self.sim.true_year+1):
+        # for year in range(self.marriage.year, self.sim.true_year+1):
+        for year in range(self.marriage.year, self.sim.current_date.year + 1):
             # If someone is pregnant and due this year, have them give birth
             if self.pregnant or self.spouse.pregnant:
                 pregnant_one = self if self.pregnant else self.spouse
                 if pregnant_one.conception_year < year:
                     pregnant_one.give_birth()
-            self.sim.year = year
+            # self.sim.current_date.year = year
             chance_they_are_trying_to_conceive_this_year = (
                 config.function_to_determine_chance_married_couple_are_trying_to_conceive(
                     n_kids=len(self.marriage.children_produced)

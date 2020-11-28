@@ -7,7 +7,7 @@ if __name__ == "__main__":
 
 	# Generate a town!
 	start_time = time.time()
-	sim = Simulation()  # Objects of the class Simulation are Talk of the Town simulations
+	sim = Simulation("./config/config.json")  # Objects of the class Simulation are Talk of the Town simulations
 	# Simulate from the date specified as the start of town generation to the date specified
 	# as its terminus; both of these dates can be set in config/basic_config.py
 	try:
