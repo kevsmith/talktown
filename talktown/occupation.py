@@ -53,6 +53,10 @@ class Occupation:
         for other_person in self.person.relationships:
             self.person.relationships[other_person].update_spark_and_charge_increments_for_job_level_difference()
 
+    def __lt__(self, other):
+        """Less Than"""
+        return self.person.id < other.person.id
+
     def __str__(self):
         """Return string representation."""
         if not self.terminus:

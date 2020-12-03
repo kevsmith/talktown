@@ -2,9 +2,10 @@ import sys
 import time
 import datetime
 import random
+import logging
 
 from . import business
-from . import town
+from .town import Town
 from . import occupation
 from . import residence
 from .config import Config
@@ -28,7 +29,7 @@ class Simulation:
             Date that world generation ends
         time_of_day: str
             "day" or "night"
-        town: town.Town
+        town: Town
             Town being simulated
         events: List[Event]
             List of all simulated events
@@ -53,17 +54,6 @@ class Simulation:
         self.config = Config(config_json=config_file)
         self.current_date = datetime.datetime.strptime(self.config.get('date_worldgen_begins'), '%Y-%m-%d')
         self.ending_date = datetime.datetime.strptime(self.config.get('date_worldgen_ends'), '%Y-%m-%d')
-
-
-        # self.year = self.ending_date.year #config.BasicConfig.date_worldgen_ends[0]
-        # self.true_year = self.current_date.year #config.BasicConfig.date_worldgen_begins[0]  # True year never gets changed during retconning
-        # self.ordinal_date = datetime.date(*config.BasicConfig.date_worldgen_begins).toordinal()  # Days since 01-01-0001
-        # self.month = datetime.date(*config.BasicConfig.date_worldgen_begins).month
-        # self.day = datetime.date(*config.BasicConfig.date_worldgen_begins).day
-        # self.ordinal_date_that_worldgen_ends = (
-        #     datetime.date(*config.BasicConfig.date_worldgen_ends).toordinal()
-        # )
-
 
         self.time_of_day = "day"
         self.date = self.get_date()
@@ -112,10 +102,15 @@ class Simulation:
 
         random.seed(self.config.get('seed'))
 
-        self.town = town.Town(self)
+        logging.debug("seed = {}".format(self.config.get('seed')))
+
+
+        self.town = Town(self)
 
         while len(self.town.tracts) < 2:
-            self.town = town.Town(self)
+            self.town = Town(self)
+
+        random.seed(self.config.get('seed'))
 
         # Have families establish farms on all of the town tracts except one,
         # which will be a cemetery
@@ -144,7 +139,7 @@ class Simulation:
         # reference with which to access this simulation instance
         business.Cemetery(owner=self.random_person)
         # Set the town's 'settlers' attribute
-        self.town.settlers = set(self.town.residents)
+        self.town.settlers = self.town.residents
         # Now simulate until the specified date that worldgen ends
         print("Simulating {n} years of history...".format(
             n=self.ending_date.year - self.current_date.year

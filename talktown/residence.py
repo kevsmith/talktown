@@ -29,7 +29,6 @@ class DwellingPlace(Place):
         self.owners = set()  # Gets set via self._init_ownership()
         self.former_owners = set()
         self._init_ownership(initial_owners=owners)
-        self.people_here_now = set()  # People at home on a specific time step (either a resident or visitor)
         self.demolition = None  # Potentially gets set by event.Demolition.__init__()
 
     def __str__(self):
@@ -49,7 +48,7 @@ class DwellingPlace(Place):
                 round(self.town.sim.random_number_this_timestep * len(self.owners))
             )
             index_in_owners_of_last_to_leave -= 1
-            last_to_leave = list(self.owners)[index_in_owners_of_last_to_leave]
+            last_to_leave = sorted(self.owners)[index_in_owners_of_last_to_leave]
             if self.town.sim.random_number_this_timestep > last_to_leave.personality.neuroticism:
                 locked = True
         elif self.town.sim.time_of_day == "night":

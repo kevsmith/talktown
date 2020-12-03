@@ -100,6 +100,7 @@ class Town:
         return "{} (pop. {})".format(self.name, self.population)
 
     def get_parcels(self):
+        """Return dict description of this town's parcels"""
         output_parcels = {}
         for parcel in self.parcels:
             neighbors = []
@@ -118,6 +119,7 @@ class Town:
         return output_parcels
 
     def get_lots(self):
+        """Return dict description of this town's lots"""
         output_lots = {}
         for lot in self.lots | self.tracts:
             building_id = -1
@@ -264,15 +266,27 @@ class Town:
         return tertiary_density
 
     def generate_lots(self, config):
+        # ?? Just affects the number of ??focus points within the bounding box in pyqtree
         loci = 3
         samples = 32
+
+        # ?? the length and width of the town's land in km
         size = 16
         lociLocations = []
-        for ii in range(loci):
+
+        # ?? Determine main focus points of activity
+        #    within the size x size bounding box defined
+        #    in pyqtree
+        for _ in range(loci):
             lociLocations.append([gauss(size/2.0,size/6.0), gauss(size/2.0,size/6.0)])
+
         tree = pyqtree.Index(bbox=[0,0,size,size])
-        for ii in range(samples):
+
+        # ?? For each sample
+        for _ in range(samples):
+            # Randomly choose one of the locus points defined above
             center = lociLocations[randrange(len(lociLocations))]
+            # Now randomly sample a point
             point = [clamp(gauss(center[0],size/6.0),0,size-1),clamp(gauss(center[1],size/6.0),0,size-1)]
             point.append(point[0]+1)
             point.append(point[1]+1)
@@ -782,20 +796,12 @@ class Lot:
 
     def __str__(self):
         """Return string representation."""
-        if self.__class__ is Lot:
-            if self.building:
-                return 'A lot at {} on which {} has been erected'.format(
-                    self.address, self.building.name
-                )
-            else:
-                return 'A vacant lot at {}'.format(self.address)
-        else:  # Tract
-            if self.building:
-                return 'A tract of land at {} that is the site of {}'.format(
-                    self.address, self.building.name
-                )
-            else:
-                return 'A vacant tract of land at {}'.format(self.address)
+        if self.building:
+            return 'A lot at {} on which {} has been erected'.format(
+                self.address, self.building.name
+            )
+        else:
+            return 'A vacant lot at {}'.format(self.address)
 
     @property
     def population(self):
@@ -841,6 +847,22 @@ class Lot:
         self.neighboring_lots = set(self.block.lots)
 
 
+    def __gt__(self, other):
+        """Greater than
+
+        Return True if this lot's ID is greater than the other lot's
+        """
+        return self.id > self.id
+
+
+    def __lt__(self, other):
+        """Less Than
+
+        Return true if this lot's ID is less than the other lots's
+        """
+        return self.id < self.id
+
+
 class Tract(Lot):
     """A tract of land on multiple parcels in a town, upon which businesses requiring
     extensive land (e.g., parks and cemeteries) are established.
@@ -851,8 +873,14 @@ class Tract(Lot):
         self.size = size
         super().__init__(town)
 
-    def __gt__(self, other):
-        return self.size > other.size
+    def __str__(self):
+        """Return string description"""
+        if self.building:
+            return 'A tract of land at {} that is the site of {}'.format(
+                self.address, self.building.name
+            )
+        else:
+            return 'A vacant tract of land at {}'.format(self.address)
 
 
 class PriorityQueue:

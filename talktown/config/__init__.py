@@ -28,6 +28,14 @@ class Config:
     """A class that aggregates all author-defined configuration parameters."""
 
     def __init__(self, config_json=None):
+        self.appearance = AppearanceConfig
+        self.artifact = ArtifactConfig
+        self.basic = BasicConfig
+        self.business = BusinessesConfig
+        self.lifeCycle = LifeCycleConfig
+        self.marriage = MarriageConfig
+        self.misc_character = MiscellaneousCharacterConfig
+
         self.settings = {}
         # This short script will slurp up all the parameters included in the various configuration
         # files -- specified as attributes on the classes defined in those files -- and set those

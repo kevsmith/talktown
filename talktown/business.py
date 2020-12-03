@@ -92,7 +92,6 @@ class Business(Place):
         while not self.name or any(c for c in self.town.companies if c is not self and c.name == self.name):
             self._init_get_named()
         # Set miscellaneous attributes
-        self.people_here_now = set()
         self.demolition = None  # Potentially gets set by event.Demolition.__init__()
         self.out_of_business = False  # Potentially gets changed by go_out_of_business()
         self.closure = None  # BusinessClosure object itself

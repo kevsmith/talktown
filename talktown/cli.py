@@ -1,8 +1,11 @@
 import sys
 import time
-from talktown.simulation import Simulation
 import argparse
 import pathlib
+import logging
+
+from .simulation import Simulation
+
 
 
 def parse_args():
@@ -32,7 +35,9 @@ def parse_args():
 def main():
     """Run Talk of the Town"""
     args = parse_args()
-    print(args)
+
+    # Configure logging
+    logging.basicConfig(filename='talktown.log', level=logging.DEBUG)
 
     start_time = time.time()
     sim = Simulation(args.config)
@@ -45,7 +50,7 @@ def main():
         sys.stdout.write('\r{}'.format(' ' * 94))  # Clear out the last sampled event written to stdout
         sys.stdout.write('\rWrapping up...')
         sim.advance_time()
-        for person in list(sim.town.residents):
+        for person in sorted(sim.town.residents):
             person.routine.enact()
 
     # Town generation was successful, so print out some basic info about the town
