@@ -1,11 +1,11 @@
 import random
 from random import gauss, randrange
 import heapq
+import pyqtree
 
 from . import business
 from . import residence
 from . import occupation
-from . import pyqtree
 from .corpora import Names
 from .config import Config
 
