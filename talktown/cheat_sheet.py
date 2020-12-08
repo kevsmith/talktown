@@ -40,7 +40,6 @@ def list_attributes(entity):
 		kids_at_home
 		life_events
 		name
-		nametag
 		next_of_kin
 		nuclear_family
 		object_pronoun

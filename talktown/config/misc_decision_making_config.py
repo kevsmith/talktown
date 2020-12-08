@@ -43,9 +43,8 @@ class MiscellaneousCharacterDecisionMakingConfig:
     unemployment_occupation_level = 0.5  # Affects scoring of job candidates
     # People contracting people (e.g., realtors, architects); again, these are weights
     # that are used in a scoring procedure
-    function_to_derive_score_multiplier_bonus_for_experience = (
-        lambda years_experience: years_experience ** 0.2
-    )
+    def score_multiplier_bonus_for_experience(self, years_experience):
+        return years_experience ** 0.2
     preference_to_contract_immediate_family = 9
     preference_to_contract_friend = 2
     dispreference_to_contract_enemy = -2

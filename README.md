@@ -1,7 +1,7 @@
 # talktown
 A generator of American small towns, with an emphasis on social simulation.
 
-This code has been modified from the original repo to run using python3. 
+This code has been modified from the original repo to run using python3.
 
 
 ## Running The Test Script
@@ -10,7 +10,7 @@ This code has been modified from the original repo to run using python3.
 # Just run the test script and print story sifting results
 $ python ./test.py
 
-# Run the test script and open the python 
+# Run the test script and open the python
 # interpreter to inspect the simulation
 $ python -i ./test.py
 
@@ -20,9 +20,9 @@ $ python -i ./test.py
 # Simulating 140 years of history...
 # Wrapping up...
 # After 93s, town generation was successful!
-# 
+#
 # It is now the day of August 19, 1979, in the town of Palmer, # pop. 242.
-# 
+#
 # Excavating nuggets of dramatic intrigue...
 #         Found 118 cases of unrequited love
 #         Found 0 love triangles
@@ -111,6 +111,12 @@ Below is a sample of the JSON format used when serializing talktown simulations.
 
 }
 ```
+## Notes
+
+* For retconning, the time of day will always be whatever the actual time of day
+is at the beginning of the true simulation ("day", I assume), but this shouldn't matter
+
+* Being the town mayor doesn't relly mean anything
 
 ## References
 

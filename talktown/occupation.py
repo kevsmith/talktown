@@ -1,5 +1,5 @@
 import string
-from .life_event import (Hiring, Birth, Divorce, NameChange, Death)
+from ordered_set import OrderedSet
 
 
 class Occupation:
@@ -28,24 +28,23 @@ class Occupation:
         # Note: self.person.occupation gets set by Business.hire(), because there's
         # a really tricky pipeline that has to be maintained
         person.occupations.append(self)
-        self.level = person.sim.config.job_levels[self.__class__]
+        self.level = person.sim.config.business.job_levels[self.__class__]
         # Update the .coworkers attribute of this person and their new coworkers
-        person.coworkers = set()  # Wash out their former coworkers, if any
-        person.coworkers = {employee.person for employee in self.company.employees} - {person}
+        person.coworkers = OrderedSet()  # Wash out their former coworkers, if any
+        person.coworkers = OrderedSet([employee.person for employee in self.company.employees]) - OrderedSet([person])
         for coworker in person.coworkers:
             coworker.coworkers.add(person)
         # Update relevant salience values for this person and their new coworkers
         salience_change_for_new_coworker = (
-            self.person.sim.config.salience_increment_from_relationship_change['coworker']
+            self.person.sim.config.salience.salience_increment_from_relationship_change['coworker']
         )
         for coworker in person.coworkers:
             person.update_salience_of(entity=coworker, change=salience_change_for_new_coworker)
             coworker.update_salience_of(entity=person, change=salience_change_for_new_coworker)
         # Update the salience value for this person held by everyone else in the town to
         # reflect their new job level
-        boost_in_salience_for_this_job_level = self.person.sim.config.salience_job_level_boost(
-            job_level=self.level
-        )
+        boost_in_salience_for_this_job_level = self.person.sim.config.salience.salience_job_level_boost(self.level)
+
         for resident in company.town.residents:
             resident.update_salience_of(entity=self.person, change=boost_in_salience_for_this_job_level)
         # Update all relationships this person has to reflect the new job-level difference
@@ -93,7 +92,7 @@ class Occupation:
         """Return whether the person with this occupation has a boss."""
         return True if self.company.owner is not self else False
 
-    def terminate(self, reason):
+    def terminate(self, reason, date):
         """Terminate this occupation, due to another hiring, retirement, or death or departure."""
         self.end_date = self.person.sim.current_date.year
         self.terminus = reason
@@ -102,20 +101,20 @@ class Occupation:
         if self is self.company.owner:
             self.company.former_owners.append(self)
         # If this isn't an in-house promotion, update a bunch of attributes
-        in_house_promotion = (isinstance(reason, Hiring) and reason.promotion)
+        in_house_promotion = reason.__class__.__name__ == "Hiring" and reason.promotion
         if not in_house_promotion:
             # Update the .coworkers attribute of the person's now former coworkers
             for employee in self.company.employees:
                 employee.person.coworkers.remove(self.person)
-            # Update the .former_coworkers attribute of everyone involved to reflect this change
-            for employee in self.company.employees:
                 self.person.former_coworkers.add(employee.person)
                 employee.person.former_coworkers.add(self.person)
+
+
             # Update all relevant salience values for everyone involved
             config = self.person.sim.config
             change_in_salience_for_former_coworker = (
-                config.salience_increment_from_relationship_change["former coworker"] -
-                config.salience_increment_from_relationship_change["coworker"]
+                config.salience.salience_increment_from_relationship_change["former coworker"] -
+                config.salience.salience_increment_from_relationship_change["coworker"]
             )
             for employee in self.company.employees:
                 employee.person.update_salience_of(
@@ -138,7 +137,7 @@ class Occupation:
             position_that_is_now_vacant = self.__class__
             if not self.supplemental:
                 self.company.hire(
-                    occupation_of_need=position_that_is_now_vacant, shift=self.shift, to_replace=self
+                    occupation_of_need=position_that_is_now_vacant, shift=self.shift, to_replace=self, date=date
                 )
             elif not self.hired_as_favor:
                 self.company.supplemental_vacancies[self.shift].append(position_that_is_now_vacant)
@@ -148,11 +147,11 @@ class Occupation:
             self.person.occupation = None
         # If this person is retiring, set their .coworkers to the empty set
         if reason.__class__.__name__ == "Retirement":
-            self.person.coworkers = set()
+            self.person.coworkers = OrderedSet()
         else:
             # If they're not retiring, decrement their salience to everyone else
             # commensurate to the job level of this position
-            change_in_salience_for_this_job_level = self.person.sim.config.salience_job_level_boost(
+            change_in_salience_for_this_job_level = self.person.sim.config.salience.salience_job_level_boost(
                 job_level=self.level
             )
             for resident in self.company.town.residents:
@@ -297,8 +296,8 @@ class Architect(Occupation):
         """
         super().__init__(person=person, company=company, shift=shift)
         # Work accomplishments
-        self.building_constructions = set()
-        self.house_constructions = set()
+        self.building_constructions = OrderedSet()
+        self.house_constructions = OrderedSet()
 
 
 class BankTeller(Occupation):
@@ -384,11 +383,7 @@ class Doctor(Occupation):
         """
         super().__init__(person=person, company=company, shift=shift)
         # Work accomplishments
-        self.baby_deliveries = set()
-
-    def deliver_baby(self, mother):
-        """Instantiate a new Birth object."""
-        Birth(mother=mother, doctor=self)
+        self.baby_deliveries = OrderedSet()
 
 
 class FireChief(Occupation):
@@ -450,18 +445,18 @@ class Lawyer(Occupation):
         """
         super().__init__(person=person, company=company, shift=shift)
         # Work accomplishments
-        self.filed_divorces = set()
-        self.filed_name_changes = set()
+        self.filed_divorces = OrderedSet()
+        self.filed_name_changes = OrderedSet()
         # Have the law firm rename itself to include your name
-        self.company.rename_due_to_lawyer_change()
+        # self.company.rename_due_to_lawyer_change()
 
-    def file_divorce(self, clients):
-        """File a name change on behalf of person."""
-        Divorce(subjects=clients, lawyer=self)
+    # def file_divorce(self, clients):
+    #     """File a name change on behalf of person."""
+    #     Divorce(subjects=clients, lawyer=self)
 
-    def file_name_change(self, person, new_last_name, reason):
-        """File a name change on behalf of person."""
-        NameChange(subject=person, new_last_name=new_last_name, reason=reason, lawyer=self)
+    # def file_name_change(self, person, new_last_name, reason):
+    #     """File a name change on behalf of person."""
+    #     NameChange(subject=person, new_last_name=new_last_name, reason=reason, lawyer=self)
 
 
 class Mayor(Occupation):
@@ -487,11 +482,7 @@ class Mortician(Occupation):
         """
         super().__init__(person=person, company=company, shift=shift)
         # Work accomplishments
-        self.body_interments = set()
-
-    def inter_body(self, deceased, cause_of_death):
-        """Inter a body in a cemetery."""
-        Death(subject=deceased, mortician=self, cause_of_death=cause_of_death)
+        self.body_interments = OrderedSet()
 
 
 class Optometrist(Occupation):
@@ -565,7 +556,7 @@ class Realtor(Occupation):
         """
         super().__init__(person=person, company=company, shift=shift)
         # Work accomplishments
-        self.home_sales = set()
+        self.home_sales = OrderedSet()
 
 
 class Professor(Occupation):

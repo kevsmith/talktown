@@ -11,7 +11,7 @@ class Whereabouts:
         self.person = person
         # Keys will be tuples of the form (ordinal_date, day_or_night_bit), where
         # day_or_night_bit == 0 if a day timestep else 1
-        self.date = {}
+        self.date = dict()
 
     def __str__(self):
         """Return string representation."""
@@ -59,7 +59,7 @@ class Whereabout:
         # this timestep; will either be 'work', 'school', 'home', 'errand', or 'leisure'
         self.occasion = occasion
         # Attribute metadata about the timestep of this whereabout
-        self.date = person.sim.date
+        self.date = person.sim.get_date_str()
         self.ordinal_date = person.sim.current_date.toordinal()
         self.time_of_day = person.sim.time_of_day
 

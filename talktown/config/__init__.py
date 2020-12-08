@@ -1,7 +1,6 @@
 import pathlib
 import json
 from queue import Queue
-import random
 
 from .appearance_config import AppearanceConfig
 from .artifact_config import ArtifactConfig
@@ -18,43 +17,27 @@ from .social_sim_config import SocialSimConfig
 from .story_recognition_config import StoryRecognitionConfig
 from .town_generation_details_config import TownGenerationDetailsConfig
 
-ALL_CONFIG_FILES = [
-    AppearanceConfig, ArtifactConfig, BasicConfig, BusinessesConfig, LifeCycleConfig, MarriageConfig,
-    MiscellaneousCharacterConfig, MiscellaneousCharacterDecisionMakingConfig, PersonalityConfig,
-    RoutineConfig, SalienceConfig, SocialSimConfig, StoryRecognitionConfig, TownGenerationDetailsConfig
-]
-
 class Config:
     """A class that aggregates all author-defined configuration parameters."""
 
-    def __init__(self, config_json=None):
-        self.appearance = AppearanceConfig
-        self.artifact = ArtifactConfig
-        self.basic = BasicConfig
-        self.business = BusinessesConfig
-        self.lifeCycle = LifeCycleConfig
-        self.marriage = MarriageConfig
-        self.misc_character = MiscellaneousCharacterConfig
+    def __init__(self):
+        """Instantiate config and subconfigs"""
+        self.appearance = AppearanceConfig()
+        self.artifact = ArtifactConfig()
+        self.basic = BasicConfig()
+        self.business = BusinessesConfig()
+        self.life_cycle = LifeCycleConfig()
+        self.marriage = MarriageConfig()
+        self.misc_character = MiscellaneousCharacterConfig()
+        self.misc_character_decision_making = MiscellaneousCharacterDecisionMakingConfig()
+        self.personality = PersonalityConfig()
+        self.routine = RoutineConfig()
+        self.salience = SalienceConfig()
+        self.social_sim = SocialSimConfig()
+        self.story_recognition = StoryRecognitionConfig()
+        self.town_generation = TownGenerationDetailsConfig()
 
-        self.settings = {}
-        # This short script will slurp up all the parameters included in the various configuration
-        # files -- specified as attributes on the classes defined in those files -- and set those
-        # as attributes on the Config class defined above; this class will then be set as an attribute
-        # on the Simulation object constructed by Simulation.__init__(), which will make all of the
-        # config parameters accessible through 'Simulation.config'
-        for config_file in ALL_CONFIG_FILES:
-            for parameter, value in config_file.__dict__.items():
-                self.settings[parameter] = value
-                self.__dict__[parameter] = value
-
-        if config_json is not None:
-            self.load(config_json)
-
-    def get(self, key):
-        """Retrieve configuration value"""
-        return self.settings[key]
-
-    def load(self, filepath):
+    def load_json(self, filepath):
         """Loads configuration from JSON file(s)"""
         # Other config files referenced by this one
         referenced_files = Queue()
@@ -82,8 +65,19 @@ class Config:
                 # Basic config parameters are at the root level of the file
                 # others are within nested dictionaries
 
-                if 'basic' in config_data:
+                subconfigurations = vars(self)
 
-                    if 'seed' in config_data['basic']:
-                        self.settings['seed'] = config_data['basic']['seed']
-                        self.__dict__['seed'] = config_data['basic']['seed']
+                # Loop through the keys of the root level
+                for json_subconfig_key in config_data.keys():
+                    # Check if the key corresponds to any of this
+                    # Config's subconfiguration variables
+                    if json_subconfig_key in subconfigurations.keys():
+
+                        subconfig = vars(self)[json_subconfig_key]
+
+                        # Loop through the keys of the nested json configuration
+                        # objcet and overwite values in the Python Config's
+                        # subconfiguration if the names match
+                        for key in config_data[json_subconfig_key].keys():
+                            if key in vars(subconfig):
+                                subconfig.__dict__[key] = config_data[json_subconfig_key][key]

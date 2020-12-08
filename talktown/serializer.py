@@ -44,7 +44,7 @@ def serialize_town(town):
         "lots": {},
         "tracts": {},
         "parcels": {},
-        "dwelling_places": [],
+        "residences": [],
         "blocks": {},
         "apartment_complexes": [],
         "other_businesses": [],
@@ -94,13 +94,13 @@ def serialize_town(town):
         output["people"][str(d.id)] = serialize_person(d)
         output["deceased"].append(d.id)
 
-    for c in town.companies:
+    for c in town.businesses:
         output["places"][str(c.id)] = serialize_business(c)
-        output["companies"].append(c.id)
+        output["businesses"].append(c.id)
 
-    for c in town.former_companies:
+    for c in town.former_businesses:
         output["places"][str(c.id)] = serialize_business(c)
-        output["former_companies"].append(c.id)
+        output["former_businesses"].append(c.id)
 
     for l in town.lots:
         output["lots"][str(l.id)] = serialize_lot(l)
@@ -108,9 +108,9 @@ def serialize_town(town):
     for t in town.tracts:
         output["tracts"][str(t.id)] = serialize_lot(t)
 
-    for d in town.dwelling_places:
+    for d in town.residences:
         output["places"][str(d.id)] = serialize_dwelling(d)
-        output["dwelling_places"].append(d.id)
+        output["residences"].append(d.id)
 
     for s in town.streets:
         output["streets"][str(s.id)] = serialize_street(s)
@@ -128,7 +128,7 @@ def serialize_town(town):
     return output
 
 def serialize_dwelling(d):
-    """Serialize DwellingPlace object"""
+    """Serialize Residence object"""
     output = {
         "id": d.id,
         "type": d.__class__.__name__,
@@ -292,7 +292,7 @@ def serialize_person(p):
             "greatgrandchildren": [ x.id for x in p.greatgrandchildren ],
             "greatgrandsons": [ x.id for x in p.greatgrandsons ],
             "greatgranddaughters": [ x.id for x in p.greatgranddaughters ],
-            "bio_parents": [ x.id for x in p.bio_parents ],
+            "bio_parents": [ x.id for x in p.biological_parents ],
             "bio_grandparents": [ x.id for x in p.bio_grandparents ],
             "bio_siblings": [ x.id for x in p.bio_siblings ],
             "bio_full_siblings": [ x.id for x in p.bio_full_siblings ],

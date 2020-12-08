@@ -1,3 +1,5 @@
+from ordered_set import OrderedSet
+
 class Place:
     """Abstract class of a physical place in the town
 
@@ -13,7 +15,7 @@ class Place:
 
     def __init__(self):
         self.id = Place.next_id; Place.next_id += 1
-        self.people_here_now = set()
+        self.people_here_now = OrderedSet()
 
     def __lt__(self, other):
         """Less Than"""

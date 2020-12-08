@@ -1,6 +1,6 @@
 {
     "basic": {
-        "seed": 12
+        "seed": 2020
     },
     "story_recognition": {
         "spark_threshold_for_being_captivated": 20,

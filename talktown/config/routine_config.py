@@ -105,7 +105,7 @@ class RoutineConfig:
 
     who_someone_visiting_will_visit_probabilities = tuple(_temp)
 
-    # Miscellaneous: locking doors -- each building in a town (objects of Business and DwellingPlace
+    # Miscellaneous: locking doors -- each building in a town (objects of Business and Residence
     # subclasses) will have a 'locked' attribute specifying whether the door of that building is
     # currently locked; this could be used to prevent players from entering locked doors (and indeed
     # is used in Bad News)

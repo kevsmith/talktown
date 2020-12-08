@@ -15,33 +15,33 @@ class Personality:
         self.interest_in_history = self._determine_interest_in_history()
         # Binned scores used as convenient personality hooks during Expressionist authoring
         config = person.sim.config
-        if self.openness_to_experience > config.threshold_for_high_binned_personality_score:
+        if self.openness_to_experience > config.personality.threshold_for_high_binned_personality_score:
             self.high_o, self.low_o = True, False
-        elif self.openness_to_experience < config.threshold_for_low_binned_personality_score:
+        elif self.openness_to_experience < config.personality.threshold_for_low_binned_personality_score:
             self.high_o, self.low_o = False, True
         else:
             self.high_o, self.low_o = False, False
-        if self.conscientiousness > config.threshold_for_high_binned_personality_score:
+        if self.conscientiousness > config.personality.threshold_for_high_binned_personality_score:
             self.high_c, self.low_c = True, False
-        elif self.conscientiousness < config.threshold_for_low_binned_personality_score:
+        elif self.conscientiousness < config.personality.threshold_for_low_binned_personality_score:
             self.high_c, self.low_c = False, True
         else:
             self.high_c, self.low_c = False, False
-        if self.extroversion > config.threshold_for_high_binned_personality_score:
+        if self.extroversion > config.personality.threshold_for_high_binned_personality_score:
             self.high_e, self.low_e = True, False
-        elif self.extroversion < config.threshold_for_low_binned_personality_score:
+        elif self.extroversion < config.personality.threshold_for_low_binned_personality_score:
             self.high_e, self.low_e = False, True
         else:
             self.high_e, self.low_e = False, False
-        if self.agreeableness > config.threshold_for_high_binned_personality_score:
+        if self.agreeableness > config.personality.threshold_for_high_binned_personality_score:
             self.high_a, self.low_a = True, False
-        elif self.agreeableness < config.threshold_for_low_binned_personality_score:
+        elif self.agreeableness < config.personality.threshold_for_low_binned_personality_score:
             self.high_a, self.low_a = False, True
         else:
             self.high_a, self.low_a = False, False
-        if self.neuroticism > config.threshold_for_high_binned_personality_score:
+        if self.neuroticism > config.personality.threshold_for_high_binned_personality_score:
             self.high_n, self.low_n = True, False
-        elif self.neuroticism < config.threshold_for_low_binned_personality_score:
+        elif self.neuroticism < config.personality.threshold_for_low_binned_personality_score:
             self.high_n, self.low_n = False, True
         else:
             self.high_n, self.low_n = False, False
@@ -90,25 +90,25 @@ class Personality:
         config = self.person.sim.config
         feature_will_get_inherited = (
             self.person.biological_mother and
-            random.random() < config.big_five_heritability_chance[feature_type]
+            random.random() < config.personality.big_five_heritability_chance[feature_type]
         )
         if feature_will_get_inherited:
             # Inherit this trait (with slight variance)
             takes_after = random.choice([self.person.biological_father, self.person.biological_mother])
             feature_value = random.normalvariate(
                 self._get_a_persons_feature_of_type(person=takes_after, feature_type=feature_type),
-                config.big_five_inheritance_sd[feature_type]
+                config.personality.big_five_inheritance_sd[feature_type]
             )
         else:
             takes_after = None
             # Generate from the population mean
             feature_value = random.normalvariate(
-                config.big_five_mean[feature_type], config.big_five_sd[feature_type]
+                config.personality.big_five_mean[feature_type], config.personality.big_five_sd[feature_type]
             )
-        if feature_value < config.big_five_floor:
-            feature_value = config.big_five_floor
-        elif feature_value > config.big_five_cap:
-            feature_value = config.big_five_cap
+        if feature_value < config.personality.big_five_floor:
+            feature_value = config.personality.big_five_floor
+        elif feature_value > config.personality.big_five_cap:
+            feature_value = config.personality.big_five_cap
         feature_object = Feature(value=feature_value, inherited_from=takes_after)
         return feature_object
 

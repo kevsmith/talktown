@@ -1,6 +1,6 @@
 from .. import business
 from .. import occupation
-
+from ordered_set import OrderedSet
 
 class BusinessesConfig:
     """Configuration parameters related to businesses."""
@@ -610,9 +610,9 @@ class BusinessesConfig:
         },
     }
     # Occupations for which a college degree is required
-    occupations_requiring_college_degree = {
+    occupations_requiring_college_degree = OrderedSet([
         occupation.Doctor, occupation.Architect, occupation.Optometrist, occupation.PlasticSurgeon, occupation.Lawyer, occupation.Professor, occupation.Pharmacist, occupation.Dentist
-    }
+    ])
     # Job levels of various occupations (indexed by their class names)
     job_levels = {
         None: 0,  # Unemployed
