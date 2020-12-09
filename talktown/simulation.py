@@ -121,7 +121,8 @@ class Simulation:
     def establish_setting(self):
         """Establish the town that will be simulated."""
         if self.verbose:
-            print("Generating a town...")
+            print("Generating a town (world seed: {})..."
+                .format(self.config.basic.seed))
 
         random.seed(self.config.basic.seed)
 

@@ -3,7 +3,7 @@ import time
 import argparse
 import pathlib
 import logging
-
+from talktown.serializer import serialize_to_file
 from talktown.simulation import Simulation
 from talktown.config import Config
 
@@ -79,6 +79,7 @@ def main():
     if args.export is not None:
         if args.verbose:
             print("Exporting simulation to '{}'".format(args.out))
+        serialize_to_file(sim, args.out)
 
     return sim
 

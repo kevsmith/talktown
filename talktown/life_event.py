@@ -8,7 +8,6 @@ from .person import Person
 from .corpora import Names
 from .residence import House
 from .artifact import Gravestone
-from .utils import get_random_day_of_year
 
 class Event:
     """A superclass that all event subclasses inherit from.
@@ -109,7 +108,7 @@ class Birth(Event):
         if self.doctor:  # There won't be a doctor if the birth happened outside the town
             self.hospital = doctor.company
             self.nurses = OrderedSet([
-                e for e in self.hospital.employees if isinstance(e, occupation.Nurse)
+                e.person for e in self.hospital.employees if isinstance(e, occupation.Nurse)
             ])
 
     def __str__(self):
@@ -340,7 +339,7 @@ class BusinessConstruction(Event):
             self.construction_firm = architect.company
             for employee in self.construction_firm.employees:
                 if isinstance(employee, occupation.Builder):
-                    self.builders.add(employee)
+                    self.builders.add(employee.person)
 
         else:
             # Build it yourself
@@ -455,7 +454,6 @@ class Demolition(Event):
     def __init__(self, building, demolition_company, date, reason=None):
         """Initialize a Demolition object."""
         super().__init__(date)
-        self.town = building.town
         self.building = building
         self.demolition_company = demolition_company  # ConstructionFirm handling the demolition
         self.reason = reason  # May also get set by HouseConstruction or BusinessConstruction object __init__()
@@ -754,7 +752,9 @@ class HomePurchase(Event):
     def transfer_ownership(home, new_owners):
         """Transfer ownership of this house to its new owners."""
         home.former_owners |= home.owners
-        home.owners = new_owners
+        home.owners.clear()
+        for p in new_owners:
+            home.owners.add(p)
 
 class HouseConstruction(Event):
     """Construction of a house."""
@@ -773,11 +773,7 @@ class HouseConstruction(Event):
             self.construction_firm = architect.company
             for employee in self.construction_firm.employees:
                 if isinstance(employee, occupation.Builder):
-                    self.builders.add(employee)
-
-
-
-
+                    self.builders.add(employee.person)
 
         for subject in self.subjects:
             subject.building_commissions.add(self)

@@ -113,7 +113,6 @@ class Business(Place):
         sim.town.businesses.add(business)
 
         if class_type not in sim.config.business.public_company_types:
-            # business.hire_founder(founder, date)
             owner_occupation_class = \
                 sim.config.business.owner_occupations_for_each_business_type[business.__class__]
 
@@ -124,21 +123,21 @@ class Business(Place):
 
         business.hire_initial_employees(sim.current_date)
 
-        business.generate_name(sim.town)
-
-    def generate_name(self, town):
-        """Generate name for the business"""
-        # while self.name != "" or any(c for c in town.businesses if c is not self and c.name == self.name):
-        self._init_get_named()
+        business.generate_name()
 
     def secure_lot(self, founder, town, date, config):
         """Find a lot to build this business"""
         construction = None
         demolition = None
         if len(town.vacant_lots) > 0 \
-           or self.__class__ in config.business.companies_that_get_established_on_tracts:
+           and not (self.__class__ in config.business.companies_that_get_established_on_tracts):
 
             lot = self._init_choose_vacant_lot()
+
+        elif len(town.vacant_tracts) > 0 \
+           and self.__class__ in config.business.companies_that_get_established_on_tracts:
+
+           lot = self._init_choose_vacant_lot()
 
         else:
             lot = self._init_acquire_currently_occupied_lot()
@@ -174,128 +173,30 @@ class Business(Place):
 
         return lot, construction
 
-    def hire_founder(self, owner, date):
-        """Set the occupation of the owner and return it"""
-        owner_occupation_class = \
-            self.config.business.owner_occupations_for_each_business_type[self.__class__]
-
-        owner_occupation = owner_occupation_class(owner, self, shift="day")
-
-        hiring = life_event.Hiring(owner, self, owner_occupation, date=date)
-
-        owner_occupation.hiring = hiring
-        owner.life_events.add(hiring)
-        owner.sim.register_event(hiring)
-
-        if owner.occupation is not None:
-            owner.occupation.terminate(reason=hiring, date=date)
-
-        owner.occupation = owner_occupation
-
-        # Lastly, if the person was hired from outside the town, have them move to it
-        if owner.town is not self.town:
-            owner.move_into_the_town(self.town, hiring, date)
-
-        self.owner = owner_occupation
-
-
     def on_demolition(self, demolition_event):
         """Callback function triggered when business is demolished"""
         self.demolition = demolition_event
         self.lot.building = None
         self.lot.former_buildings.append(self)
 
-    def _init_get_named(self):
+    def generate_name(self):
         """Get named by the owner of this building (the client for which it was constructed)."""
-        class_to_company_name_component = {
-            ApartmentComplex: 'Apartments',
-            Bank: 'Bank',
-            Barbershop: 'Barbershop',
-            BusDepot: 'Bus Depot',
-            CityHall: 'City Hall',
-            ConstructionFirm: 'Construction',
-            DayCare: 'Day Care',
-            OptometryClinic: 'Optometry',
-            FireStation: 'Fire Dept.',
-            Hospital: 'Hospital',
-            Hotel: 'Hotel',
-            LawFirm: 'Law Offices of',
-            PlasticSurgeryClinic: 'Cosmetic Surgery Clinic',
-            PoliceStation: 'Police Dept.',
-            RealtyFirm: 'Realty',
-            Restaurant: 'Restaurant',
-            School: 'K-12 School',
-            Supermarket: 'Grocers',
-            TattooParlor: 'Tattoo',
-            TaxiDepot: 'Taxi',
-            University: 'University',
-            Cemetery: 'Cemetery',
-            Park: 'Park',
-            Bakery: 'Baking Co.',
-            BlacksmithShop: 'Blacksmith Shop',
-            Brewery: 'Brewery',
-            ButcherShop: 'Butcher Shop',
-            CandyStore: 'Candy Store',
-            CarpentryCompany: 'Carpentry',
-            ClothingStore: 'Clothing Co.',
-            CoalMine: 'Coal Mine',
-            Dairy: 'Dairy',
-            Deli: 'Delicatessen',
-            DentistOffice: 'Dentistry',
-            DepartmentStore: 'Department Store',
-            Diner: 'Diner',
-            Distillery: 'Distillery',
-            DrugStore: 'Drug Store',
-            Farm: 'family farm',
-            Foundry: 'Foundry',
-            FurnitureStore: 'Furniture Co.',
-            GeneralStore: 'General Store',
-            GroceryStore: 'Groceries',
-            HardwareStore: 'Hardware Co.',
-            Inn: 'Inn',
-            InsuranceCompany: 'Insurance Co.',
-            JeweleryShop: 'Jewelry',
-            PaintingCompany: 'Painting',
-            Pharmacy: 'Pharmacy',
-            PlumbingCompany: 'Plumbing Co.',
-            Quarry: 'Rock Quarry',
-            ShoemakerShop: 'Shoes',
-            TailorShop: 'Tailoring',
-            Tavern: 'Tavern',
-        }
-        classes_that_get_special_names = (
-            CityHall, FireStation, Hospital, PoliceStation, School, Cemetery, LawFirm, Bar,
-            Restaurant, University, Park, Farm
-        )
-        if self.__class__ not in classes_that_get_special_names:
+        name = ""
+
+
+        if self.__class__ not in self.config.business.classes_that_get_special_names:
             if random.random() < self.config.business.chance_company_gets_named_after_owner:
                 prefix = self.owner.person.last_name
             else:
                 prefix = self.street_address_is_on.name
-            name = "{0} {1}".format(prefix, class_to_company_name_component[self.__class__])
-        elif self.__class__ in (CityHall, FireStation, Hospital, PoliceStation, School, Cemetery):
-            name = "{0} {1}".format(self.town.name, class_to_company_name_component[self.__class__])
-        elif self.__class__ is Farm:
-            name = "{}'s farm".format(self.owner.person.name)
-            if any(c for c in self.town.businesses if c.name == name):
-                name = "{}'s farm".format(self.owner.person.full_name)
-        elif self.__class__ is LawFirm:
-            associates = [e for e in self.employees if e.__class__ is Lawyer]
-            suffix = "{0} & {1}".format(
-                ', '.join(a.person.last_name for a in associates[:-1]), associates[-1].person.last_name
-            )
-            name = "{0} {1}".format(class_to_company_name_component[LawFirm], suffix)
-        elif self.__class__ is Bar:
-            name = Names.a_bar_name()
-        elif self.__class__ is Restaurant:
-            name = Names.a_restaurant_name()
-        elif self.__class__ is University:
-            name = "{} College".format(self.town.name)
+            name = "{0} {1}".format(prefix, self.config.business.class_to_company_name_component[self.__class__])
+
         elif self.__class__ is Park:
-            if self.lot.former_buildings:
-                business_here_previously = list(self.lot.former_buildings)[-1]
-                owner = business_here_previously.owner.person
+            if len(self.lot.former_buildings) > 0 \
+               and self.lot.former_buildings[-1].__class__ in Business.__subclasses__():
+                business_here_previously = self.lot.former_buildings[-1]
                 if business_here_previously.__class__ is Farm:
+                    owner = business_here_previously.owner.person
                     x = random.random()
                     if x < 0.25:
                         name = '{} {} Park'.format(
@@ -323,6 +224,7 @@ class Business(Place):
                     else:
                         name = '{} Park'.format(self.town.name)
                 elif business_here_previously.__class__ is Quarry:
+                    owner = business_here_previously.owner.person
                     x = random.random()
                     if x < 0.25:
                         name = '{} {} Park'.format(
@@ -350,6 +252,7 @@ class Business(Place):
                     else:
                         name = '{} Park'.format(self.town.name)
                 elif business_here_previously.__class__ is CoalMine:
+                    owner = business_here_previously.owner.person
                     x = random.random()
                     if x < 0.25:
                         name = '{} {} Park'.format(
@@ -380,7 +283,10 @@ class Business(Place):
                         )
                     else:
                         name = '{} Park'.format(self.town.name)
+            else:
+                name = "{} Park".format(self.founder.last_name)
         else:
+
             raise Exception("A company of class {} was unable to be named.".format(self.__class__.__name__))
         self.name = name
 
@@ -874,6 +780,8 @@ class Bar(Business):
         """
         super().__init__(owner, date, town, config=config)
 
+    def generate_name(self):
+        return Names.a_bar_name()
 
 class Barbershop(Business):
     """A barbershop."""
@@ -970,6 +878,10 @@ class Cemetery(Business):
         self.plots[new_plot_number] = person
         return new_plot_number
 
+    def generate_name(self):
+        return "{0} {1}".format(self.town.name, self.config.business.class_to_company_name_component[Cemetery])
+
+
 
 class CityHall(Business):
     """The city hall."""
@@ -981,6 +893,9 @@ class CityHall(Business):
         """
         super().__init__(owner, date, town, config=config)
         self.town.city_hall = self
+
+    def generate_name(self):
+        return "{0} {1}".format(self.town.name, self.config.business.class_to_company_name_component[CityHall])
 
 
 class ClothingStore(Business):
@@ -1132,6 +1047,11 @@ class Farm(Business):
         """
         super().__init__(owner, date, town, config=config)
 
+    def generate_name(self):
+        name = "{}'s farm".format(self.owner.person.name)
+        if any(c for c in self.town.businesses if c.name == name):
+            name = "{}'s farm".format(self.owner.person.full_name)
+        return name
 
 class FireStation(Business):
     """A fire station."""
@@ -1143,6 +1063,10 @@ class FireStation(Business):
         """
         super().__init__(owner, date, town, config=config)
         self.town.fire_station = self
+
+    def generate_name(self):
+        return "{0} {1}".format(self.town.name, self.config.business.class_to_company_name_component[FireStation])
+
 
 
 class Foundry(Business):
@@ -1220,6 +1144,10 @@ class Hospital(Business):
                 baby_deliveries |= employee.baby_deliveries
         return baby_deliveries
 
+    def generate_name(self):
+        return "{0} {1}".format(self.town.name, self.config.business.class_to_company_name_component[Hospital])
+
+
 
 class Hotel(Business):
     """A hotel."""
@@ -1274,6 +1202,14 @@ class LawFirm(Business):
         @param owner: The owner of this business.
         """
         super().__init__(owner, date, town, config=config)
+
+    def generate_name(self):
+        associates = [e for e in self.employees if e.__class__ is Lawyer]
+        suffix = "{0} & {1}".format(
+            ', '.join(a.person.last_name for a in associates[:-1]), associates[-1].person.last_name
+        )
+        name = "{0} {1}".format(self.config.business.class_to_company_name_component[LawFirm], suffix)
+        return name
 
     def rename_due_to_lawyer_change(self):
         """Rename this company due to the hiring of a new lawyer."""
@@ -1381,6 +1317,9 @@ class PoliceStation(Business):
         super().__init__(owner, date, town, config=config)
         self.town.police_station = self
 
+    def generate_name(self):
+        return "{0} {1}".format(self.town.name, self.config.business.class_to_company_name_component[PoliceStation])
+
 
 class Quarry(Business):
     """A rock quarry."""
@@ -1423,6 +1362,8 @@ class Restaurant(Business):
         """
         super().__init__(owner, date, town, config=config)
 
+    def generate_name(self):
+        return Names.a_restaurant_name()
 
 class School(Business):
     """The local K-12 school."""
@@ -1434,6 +1375,9 @@ class School(Business):
         """
         super().__init__(owner, date, town, config=config)
         self.town.school = self
+
+    def generate_name(self):
+        return "{0} {1}".format(self.town.name, self.config.business.class_to_company_name_component[School])
 
 
 class ShoemakerShop(Business):
@@ -1512,3 +1456,6 @@ class University(Business):
         """
         super().__init__(None, date, town, config=config)
         self.town.university = self
+
+    def generate_name(self):
+        return "{} College".format(self.town.name)

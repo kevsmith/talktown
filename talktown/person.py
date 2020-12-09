@@ -1465,7 +1465,7 @@ class Person:
             baby.move(new_home=self.home, reason=birth, date=date)
 
         if self.occupation:
-            life_event.Birth.mother_potentially_exit_workforce(self, date, self.sim.config)
+            life_event.Birth.mother_potentially_exit_workforce(self, date, birth)
 
         life_event.Birth.reset_pregnancy_attributes(self)
         self.sim.register_birthday((date.month, date.day), baby)
@@ -1773,8 +1773,7 @@ class Person:
 
         self.retired = True
         self.retirement = retire_event
-        self.occupation.terminus = self
-        self.occupation.terminate(reason=self, date=date)
+        self.occupation.terminate(reason=retire_event, date=date)
 
         self.sim.register_event(retire_event)
 
@@ -1935,8 +1934,14 @@ class Person:
 
         house.construction = construction_event
 
+        for person in clients:
+            house.owners.add(person)
+            person.life_events.add(construction_event)
+
         if architect is not None:
             architect.building_constructions.add(construction_event)
+
+        self.sim.register_event(construction_event)
 
         return house
 
@@ -1954,6 +1959,7 @@ class Person:
         life_event.HomePurchase.transfer_ownership(home, clients)
 
         for person in clients:
+            home.owners.add(person)
             person.life_events.add(purchase_event)
             person.home_purchases.append(purchase_event)
 

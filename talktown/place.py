@@ -24,3 +24,26 @@ class Place:
     def __gt__(self, other):
         """Greater than"""
         return self.id > other.id
+
+class Building(Place):
+    """Abstract class of a building within the town
+
+        Attributes
+        ----------
+        lot: Lot
+            Lot that this building is on
+
+        demolition: Demolition
+            Demolition event for this building
+    """
+
+    def __init__(self, lot):
+        super().__init__()
+        self.lot = lot
+        self.demolition = None
+
+    def on_demolition(self, demolition_event):
+        """Callback function triggered when business is demolished"""
+        self.demolition = demolition_event
+        self.lot.building = None
+        self.lot.former_buildings.append(self)

@@ -5,6 +5,7 @@ import pathlib
 import logging
 
 from .simulation import Simulation
+from .serializer import serialize_to_file
 from .config import Config
 
 
@@ -77,6 +78,8 @@ def main():
     if args.export is not None:
         if args.verbose:
             print("Exporting simulation to '{}'".format(args.out))
+        serialize_to_file(sim, args.out)
+
 
 if __name__ == "__main__":
     main()
