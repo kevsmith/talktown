@@ -18,7 +18,11 @@ def parse_args():
                         help="Specify JSON configuration file")
 
     parser.add_argument("--export",
-                        choices=['people', 'events', 'all'],
+                        choices=['all',
+                                 'people',
+                                 'events',
+                                 'places',
+                                 'layout'],
                         nargs='+',
                         help="Export simulation components to JSON")
 
@@ -78,7 +82,7 @@ def run():
     if args.export is not None:
         if args.verbose:
             print("Exporting simulation to '{}'".format(args.out))
-        serialize_to_file(sim, args.out)
+        serialize_to_file(sim, args.out, options=args.export)
 
     return sim
 

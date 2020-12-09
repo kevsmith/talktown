@@ -3,9 +3,14 @@ serializer.py
 
 Serialize Talk of the Town simulation to JSON
 
-For most uses we mainly care about the following:
-- people
-- events
+The accepted options for exporting are any
+combination of the following:
+
+'all' - Export entire simulation state
+'people' - Export information on people
+'places' - Export information on places
+'events' - Export information on events
+
 """
 import json
 import pathlib
@@ -22,27 +27,39 @@ from .simulation import Simulation
 
 
 
-def serialize(sim: Simulation, **kwargs):
+def serialize(sim: Simulation, options=None):
     """Serialize Talk of the Town simulation to JSON str"""
+    options = options if options is not None else ['all']
     output = dict()
-    output['town'] = serialize_town(sim.town)
-    output['events'] = serialize_events(sim.events)
-    output['birthdays'] = serialize_birthdays(sim.birthdays)
-    output['current_date'] = sim.current_date.strftime('%Y-%m-%d')
-    output['time_of_day'] = sim.time_of_day
-    output['weather'] = sim.weather
-    output['last_simulated_day'] = sim.last_simulated_day
-    output['n_simulated_timesteps'] = sim.n_simulated_timesteps
+
+    output['town'] = serialize_town(sim.town, options)
+
+    if 'events' in options or 'all' in options:
+        output['events'] = serialize_events(sim.events)
+
+    if 'all' in options:
+        output['birthdays'] = serialize_birthdays(sim.birthdays)
+        output['current_date'] = sim.current_date.strftime('%Y-%m-%d')
+        output['time_of_day'] = sim.time_of_day
+        output['weather'] = sim.weather
+        output['last_simulated_day'] = sim.last_simulated_day
+        output['n_simulated_timesteps'] = sim.n_simulated_timesteps
 
     return json.dumps(output)
 
 def serialize_to_file(sim: Simulation, filename: str, options=None):
     """Serialize Talk of the Town simulation to JSON file"""
     json_str = serialize(sim, options=options)
-    with open(filename, "w") as f:
+
+    path = pathlib.Path(filename)
+
+    # Create new directory if it doesnt exist
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(path, "w") as f:
         f.write(json_str)
 
-def serialize_town(town: Town):
+def serialize_town(town: Town, options):
     """Serialize Talk of the Town town"""
     output = {
         "name": town.name,
@@ -74,60 +91,66 @@ def serialize_town(town: Town):
         "university": town.university.id if town.university else -1
     }
 
-    for c in town.apartment_complexes:
-        output["places"][str(c.id)] = serialize_business(c)
-        output["apartment_complexes"].append(c.id)
+    if 'places' in options or 'all' in options:
 
-    for h in town.houses:
-        output["places"][str(h.id)] = serialize_residence(h)
-        output["houses"].append(h.id)
+        for c in town.apartment_complexes:
+            output["places"][str(c.id)] = serialize_business(c)
+            output["apartment_complexes"].append(c.id)
 
-    for s in town.settlers:
-        output["people"][str(s.id)] = serialize_person(s)
-        output["settlers"].append(s.id)
+        for h in town.houses:
+            output["places"][str(h.id)] = serialize_residence(h)
+            output["houses"].append(h.id)
 
-    for r in town.residents:
-        output["people"][str(r.id)] = serialize_person(r)
-        output["residents"].append(r.id)
+        for c in town.businesses:
+            output["places"][str(c.id)] = serialize_business(c)
+            output["businesses"].append(c.id)
 
-    for d in town.departed:
-        output["people"][str(d.id)] = serialize_person(d)
-        output["departed"].append(d.id)
+        for c in town.former_businesses:
+            output["places"][str(c.id)] = serialize_business(c)
+            output["former_businesses"].append(c.id)
 
-    for d in town.deceased:
-        output["people"][str(d.id)] = serialize_person(d)
-        output["deceased"].append(d.id)
+        for d in town.residences:
+            output["places"][str(d.id)] = serialize_residence(d)
+            output["residences"].append(d.id)
 
-    for c in town.businesses:
-        output["places"][str(c.id)] = serialize_business(c)
-        output["businesses"].append(c.id)
+    if 'people' in options or 'all' in options:
 
-    for c in town.former_businesses:
-        output["places"][str(c.id)] = serialize_business(c)
-        output["former_businesses"].append(c.id)
+        for s in town.settlers:
+            output["people"][str(s.id)] = serialize_person(s)
+            output["settlers"].append(s.id)
 
-    for l in town.lots:
-        output["lots"][str(l.id)] = serialize_lot(l)
+        for r in town.residents:
+            output["people"][str(r.id)] = serialize_person(r)
+            output["residents"].append(r.id)
 
-    for t in town.tracts:
-        output["tracts"][str(t.id)] = serialize_lot(t)
+        for d in town.departed:
+            output["people"][str(d.id)] = serialize_person(d)
+            output["departed"].append(d.id)
 
-    for d in town.residences:
-        output["places"][str(d.id)] = serialize_residence(d)
-        output["residences"].append(d.id)
+        for d in town.deceased:
+            output["people"][str(d.id)] = serialize_person(d)
+            output["deceased"].append(d.id)
 
-    for s in town.streets:
-        output["streets"][str(s.id)] = serialize_street(s)
+    if 'layout' in options or 'all' in options:
 
-    for p in town.parcels:
-        output["parcels"][str(p.id)] = serialize_parcel(p)
+        for l in town.lots:
+            output["lots"][str(l.id)] = serialize_lot(l)
 
-    for b in town.blocks:
-        output["blocks"][str(id(b))] = serialize_block(b)
+        for t in town.tracts:
+            output["tracts"][str(t.id)] = serialize_lot(t)
 
-    for p in town.paths:
-        path_key = "{}_{}".format(p[0].id, p[1].id)
-        output["paths"][path_key] = town.paths[p]
+        for s in town.streets:
+            output["streets"][str(s.id)] = serialize_street(s)
+
+        for p in town.parcels:
+            output["parcels"][str(p.id)] = serialize_parcel(p)
+
+        for b in town.blocks:
+            output["blocks"][str(id(b))] = serialize_block(b)
+
+        for p in town.paths:
+            path_key = "{}_{}".format(p[0].id, p[1].id)
+            output["paths"][path_key] = town.paths[p]
 
     return output
 
