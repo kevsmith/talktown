@@ -2415,7 +2415,6 @@ class PersonExNihilo(Person):
             if self.pregnant or self.spouse.pregnant:
                 pregnant_one = self if self.pregnant else self.spouse
                 if pregnant_one.conception_year < year:
-                    logging.debug("{} giving birth to retcon baby.".format(pregnant_one))
                     pregnant_one.give_birth(random_day)
 
             chance_they_are_trying_to_conceive_this_year = \

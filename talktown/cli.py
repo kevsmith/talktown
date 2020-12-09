@@ -34,7 +34,7 @@ def parse_args():
 
     return parser.parse_args()
 
-def main():
+def run():
     """Run Talk of the Town"""
     args = parse_args()
 
@@ -80,6 +80,7 @@ def main():
             print("Exporting simulation to '{}'".format(args.out))
         serialize_to_file(sim, args.out)
 
+    return sim
 
 if __name__ == "__main__":
-    main()
+    run()
