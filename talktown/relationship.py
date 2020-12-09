@@ -283,7 +283,9 @@ class Relationship:
             self.owner.sim.current_date.toordinal()
         )
         # Increment salience
-        self.owner.salience_of_other_people[self.subject] += config.salience.salience_increment_for_social_interaction
+        self.owner.salience_of_other_people[self.subject] = \
+            min(100.0, self.owner.salience_of_other_people[self.subject] + config.salience.salience_increment_for_social_interaction)
+
         # Progress raw_charge, possibly leading to a Friendship or Enmity
         change_to_charge = (
             self.raw_charge_increment * self.age_difference_effect_on_charge_increment *

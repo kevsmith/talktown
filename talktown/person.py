@@ -177,7 +177,7 @@ class Person:
         self.talked_to_this_year = OrderedSet()
         self.befriended_this_year = OrderedSet()
         # Maps potentially every other person to their salience to this person
-        self.salience_of_other_people = dict()
+        self.salience_of_other_people = collections.defaultdict(lambda: 0.0)
         self._init_salience_values()
         # Prepare attributes pertaining to pregnancy
         self.pregnant = False
@@ -2230,7 +2230,7 @@ class Person:
     def update_salience_of(self, entity, change):
         """Increment your salience value for entity by change."""
         self.salience_of_other_people[entity] = \
-            max(self.salience_of_other_people.get(entity, 0.0) + change, 100)
+            min(self.salience_of_other_people.get(entity, 0.0) + change, 100)
 
     def likes(self, person):
         """Return whether this person likes the given person."""
