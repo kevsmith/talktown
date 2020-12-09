@@ -378,7 +378,8 @@ def serialize_person(p: Person):
             "college_graduate": p.college_graduate,
             "grieving": p.grieving,
             "location": p.location.id if p.location else -1,
-            "wedding_ring_on_finger": p.wedding_ring_on_finger if p.wedding_ring_on_finger else False
+            "wedding_ring_on_finger": p.wedding_ring_on_finger if p.wedding_ring_on_finger else False,
+            "life_events": [e.event_id for e in p.life_events]
         }
 
     return output
