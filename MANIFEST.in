@@ -1,0 +1,2 @@
+include talktown/corpora/*.json
+include talktown/corpora/*.txt

@@ -2,7 +2,6 @@ import sys
 import time
 import datetime
 import random
-import logging
 from tqdm import tqdm
 from collections import defaultdict
 from ordered_set import OrderedSet

@@ -7,7 +7,7 @@ from pathlib import Path
 class Names:
     """A class that accesses names corpora to return random names."""
 
-    with open(Path(__file__).parent.absolute() / 'american_names_by_decade_with_fitted_probability_distributions.dat', 'r') as f:
+    with open(Path(__file__).parent.absolute() / 'american_names_by_decade_with_fitted_probability_distributions.json', 'r') as f:
         names_by_decade = json.load(f)
 
     miscellaneous_masculine_forenames = tuple(

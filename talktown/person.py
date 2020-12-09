@@ -1,7 +1,6 @@
 import random
 import heapq
 import collections
-import logging
 from ordered_set import OrderedSet
 from .residence import House, Apartment
 from .corpora import Names

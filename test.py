@@ -2,7 +2,6 @@ import sys
 import time
 import argparse
 import pathlib
-import logging
 from talktown.cli import run
 from talktown.serializer import serialize_to_file
 from talktown.simulation import Simulation

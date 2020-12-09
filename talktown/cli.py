@@ -2,7 +2,6 @@ import sys
 import time
 import argparse
 import pathlib
-import logging
 
 from .simulation import Simulation
 from .serializer import serialize_to_file
@@ -41,9 +40,6 @@ def parse_args():
 def run():
     """Run Talk of the Town"""
     args = parse_args()
-
-    # Configure logging
-    logging.basicConfig(filename='talktown.log', level=logging.DEBUG)
 
     sim_config = Config()
 
