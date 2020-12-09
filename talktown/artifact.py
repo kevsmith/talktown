@@ -35,7 +35,7 @@ class Gravestone(Artifact):
             self.epitaph = ''
         if (self.subject.occupations and
                 self.subject.occupations[-1].__class__.__name__ in
-                self.subject.sim.config.occupations_that_may_appear_on_gravestones):
+                self.subject.sim.config.artifact.occupations_that_may_appear_on_gravestones):
             self.occupation_inscription = '{vocation_str}\n'.format(
                 vocation_str=self.subject.occupations[-1].vocation.title()
             )

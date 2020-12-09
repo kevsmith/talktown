@@ -1,3 +1,5 @@
+from ordered_set import OrderedSet
+
 class StoryRecognizer:
     """A module that excavates nuggets of dramatic intrigue from the raw emergent material of a simulation instance."""
 
@@ -17,32 +19,40 @@ class StoryRecognizer:
         """Return string representation."""
         return "A story-recognition module for the town of {town_name}".format(town_name=self.simulation.town.name)
 
-    def excavate(self):
+    def excavate(self, verbose=True):
         """Excavate and record nuggets of dramatic intrigue."""
+        if verbose:
+            print("Excavating nuggets of dramatic intrigue...")
+
         self.unrequited_love_cases = self._excavate_unrequited_love_cases()
-        print("\tFound {n} cases of unrequited love".format(n=len(self.unrequited_love_cases)))
         self.love_triangles = self._excavate_love_triangles()
-        print("\tFound {n} love triangles".format(n=len(self.love_triangles)))
         self.extramarital_romantic_interests = self._excavate_extramarital_romantic_interests()
-        print("\tFound {n} cases of extramarital romantic interest".format(n=len(self.extramarital_romantic_interests)))
         self.asymmetric_friendships = self._excavate_asymmetric_friendships()
-        print("\tFound {n} asymmetric friendships".format(n=len(self.asymmetric_friendships)))
         self.misanthropes = self._excavate_misanthropes()
-        print("\tFound {n} misanthropes".format(n=len(self.misanthropes)))
         self.rivalries = self._excavate_rivalries()
-        print("\tFound {n} character rivalries".format(n=len(self.rivalries)))
         self.sibling_rivalries = self._excavate_sibling_rivalries()
-        print("\tFound {n} sibling rivalries".format(n=len(self.sibling_rivalries)))
         self.business_owner_rivalries = self._excavate_business_owner_rivalries()
-        print("\tFound {n} business-owner rivalries".format(n=len(self.business_owner_rivalries)))
+
+        if verbose:
+            print("\tFound {n} love triangles".format(n=len(self.love_triangles)))
+            print("\tFound {n} cases of extramarital romantic interest".format(n=len(self.extramarital_romantic_interests)))
+            print("\tFound {n} asymmetric friendships".format(n=len(self.asymmetric_friendships)))
+            print("\tFound {n} misanthropes".format(n=len(self.misanthropes)))
+            print("\tFound {n} character rivalries".format(n=len(self.rivalries)))
+            print("\tFound {n} sibling rivalries".format(n=len(self.sibling_rivalries)))
+            print("\tFound {n} business-owner rivalries".format(n=len(self.business_owner_rivalries)))
+            print("\tFound {n} cases of unrequited love".format(n=len(self.unrequited_love_cases)))
+
+
+
 
     def _excavate_unrequited_love_cases(self):
         """Recognize cases where one character's love for another is not reciprocated."""
         unrequited_love_cases = []
         for first_person in self.simulation.town.residents:
-            first_person_love_interests = set(first_person.is_captivated_by)
+            first_person_love_interests = OrderedSet(first_person.is_captivated_by)
             for second_person in first_person_love_interests:
-                second_person_love_interests = set(second_person.is_captivated_by)
+                second_person_love_interests = OrderedSet(second_person.is_captivated_by)
                 if first_person not in second_person_love_interests:
                     unrequited_love_cases.append(UnrequitedLove(subjects=(first_person, second_person)))
         return unrequited_love_cases
@@ -51,16 +61,16 @@ class StoryRecognizer:
         """Recognize character love triangles that have emerged in a simulation instance."""
         love_triangles = []
         for first_person in self.simulation.town.residents:
-            first_person_love_interests = set(first_person.is_captivated_by)
+            first_person_love_interests = OrderedSet(first_person.is_captivated_by)
             for second_person in first_person_love_interests:
-                second_person_love_interests = set(second_person.is_captivated_by)
+                second_person_love_interests = OrderedSet(second_person.is_captivated_by)
                 if first_person not in second_person_love_interests:
                     for third_person in second_person_love_interests:
-                        third_person_love_interests = set(third_person.is_captivated_by)
+                        third_person_love_interests = OrderedSet(third_person.is_captivated_by)
                         if second_person not in third_person_love_interests:
                             if first_person in third_person_love_interests:
                                 subjects = (first_person, second_person, third_person)
-                                if not any(lt for lt in love_triangles if set(lt.subjects) == set(subjects)):
+                                if not any(lt for lt in love_triangles if OrderedSet(lt.subjects) == OrderedSet(subjects)):
                                     love_triangles.append(LoveTriangle(subjects=subjects))
         return love_triangles
 
@@ -87,7 +97,7 @@ class StoryRecognizer:
     def _excavate_misanthropes(self):
         """Recognizes cases of characters who dislike many other characters."""
         misanthropes = []
-        threshold_for_misanthropy = self.simulation.config.minimum_number_of_disliked_people_to_be_misanthrope
+        threshold_for_misanthropy = self.simulation.config.story_recognition.minimum_number_of_disliked_people_to_be_misanthrope
         for person in self.simulation.town.residents:
             number_of_disliked_people = len([p for p in person.relationships if person.dislikes(p)])
             if number_of_disliked_people >= threshold_for_misanthropy:
@@ -101,7 +111,7 @@ class StoryRecognizer:
             for other_person in person.relationships:
                 if person.dislikes(other_person) and other_person.dislikes(person):
                     subjects = (person, other_person)
-                    if not any(r for r in self.rivalries if set(r.subjects) == set(subjects)):
+                    if not any(r for r in self.rivalries if OrderedSet(r.subjects) == OrderedSet(subjects)):
                         rivalries.append(Rivalry(subjects=subjects))
         return rivalries
 
@@ -112,20 +122,20 @@ class StoryRecognizer:
             for sibling in person.siblings:
                 if person.dislikes(sibling) and sibling.dislikes(person):
                     subjects = (person, sibling)
-                    if not any(sr for sr in self.sibling_rivalries if set(sr.subjects) == set(subjects)):
+                    if not any(sr for sr in self.sibling_rivalries if OrderedSet(sr.subjects) == OrderedSet(subjects)):
                         sibling_rivalries.append(SiblingRivalry(subjects=subjects))
         return sibling_rivalries
 
     def _excavate_business_owner_rivalries(self):
         """Recognize cases where mutual animosity exists between owners of rival businesses."""
         business_owner_rivalries = []
-        for company in self.simulation.town.companies:
-            for rival_company in self.simulation.town.businesses_of_type(business_type=company.__class__.__name__):
+        for company in self.simulation.town.businesses:
+            for rival_company in self.simulation.town.get_businesses_of_type(business_type=company.__class__.__name__):
                 if rival_company is not company and rival_company.owner and company.owner:
                     if not company.owner.person.likes(rival_company.owner.person):
                         if not rival_company.owner.person.likes(company.owner.person):
                             subjects = (company.owner.person, rival_company.owner.person)
-                            if not any(br for br in self.business_owner_rivalries if set(br.subjects) == set(subjects)):
+                            if not any(br for br in self.business_owner_rivalries if OrderedSet(br.subjects) == OrderedSet(subjects)):
                                 business_owner_rivalries.append(BusinessOwnerRivalry(subjects=subjects))
         return business_owner_rivalries
 

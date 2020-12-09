@@ -2,236 +2,194 @@ import sys
 import time
 import datetime
 import random
-
+import logging
+from tqdm import tqdm
+from collections import defaultdict
+from ordered_set import OrderedSet
+from .utils import is_leap_year, get_random_day_of_year
 from . import business
-from . import town
+from .town import Town
 from . import occupation
 from . import residence
-from . import config
+from .config import Config
 from .drama import StoryRecognizer
 from .person import Person, PersonExNihilo
 from .corpora import Names
+from .business import Business
 
+def print_simulation_msg(msg, char_limit=94):
+    """Print status message to the console"""
+    clear_str = '\r{}'.format(' ' * char_limit)
+    sys.stdout.write('{}\r{}'.format(clear_str,msg[:char_limit]))
+    sys.stdout.flush()
 
 class Simulation:
     """A simulation instance.
 
-    A Talk of the Town Simulation instance
+        A Talk of the Town Simulation instance
 
-    Attributes
-    ----------
+        Attributes
+        ----------
         config: dict
             Configuration parameters
-        current_person_id: int
-            ID of next person to be born
-        current_place_id: int
-            ID of next place to be generated
-        year: int
-            Current year of the simulation
-        true_year: int
-            ??
-        ordinal_date: int
-            The current date in days since Days since 01-01-0001
-        month: int
-            Month of current date
-        day: int
-            Day of current date
-        ordinal_date_that_worldgen_ends: int
-            Date that simulation will stop world generation
+
+        current_date: datetime.datetime
+            Current date within the simulation
+
+        ending_date: datetime.datetime
+            Date that world generation ends
+
         time_of_day: str
             "day" or "night"
-        town: town.Town
+
+        town: Town
             Town being simulated
-        events: List[??]
+
+        events: List[Event]
             List of all simulated events
-        event_number: int
-            ID incremented for each event created
-        birthdays: Dict{tuple(int, int): set}
-            Listing off all people born on each day
+
+        birthdays: Dict[Tuple(int, int), OrderedSet[Person]]
+            collection of all people born on each day -- this is used to
+            age people on their birthdays; we start with (2, 29) initialized because
+            we need to perform a check every March 1 to ensure that all leap-year babies
+            celebrate their birthday that day on non-leap years
+
         random_number_this_timestep: float
-            Random number used for all calculations in a timestep
-        weather: str from ['good', 'bad']
-            Current weather in town
+            Prepare a number that will hold a single random number
+            that is generated daily -- this facilitates certain things
+            that should be determined randomly but remain constant across
+            a timestep, e.g., whether a person locked their door before leaving home
+
+        weather: str
+            Current weather in town may be "good" or "bad"
+
         last_simulated_day: int
             Date of last day simulated
+
         n_simulated_timesteps: int
             Number of simulated timesteps
+
         story_recognizer: drama.StoryRecognizer
-            StoryRecognizer used to find nuggets of narrative intrigue
+            whose job is to excavate nuggets of dramatic
+            intrigue from the raw emergent material generated
+            by this simulation
+
+        leap_year: bool
+            Tracked across the year to help with managing the
+            aging of leap-year babies
+
+        verbose: bool
+            Should output be printed to the console
     """
 
-    def __init__(self):
+    def __init__(self, config=None, verbose=True):
         """Initialize a Simulation object."""
-        # Load config parameters
-        self.config = config.Config()
-        # This gets incremented each time a new person is born/generated,
-        # which affords a persistent ID for each person
-        self.current_person_id = 0
-        self.current_place_id = 0
-        self.year = config.BasicConfig.date_worldgen_ends[0]
-        self.true_year = config.BasicConfig.date_worldgen_begins[0]  # True year never gets changed during retconning
-        self.ordinal_date = datetime.date(*config.BasicConfig.date_worldgen_begins).toordinal()  # Days since 01-01-0001
-        self.month = datetime.date(*config.BasicConfig.date_worldgen_begins).month
-        self.day = datetime.date(*config.BasicConfig.date_worldgen_begins).day
-        self.ordinal_date_that_worldgen_ends = (
-            datetime.date(*config.BasicConfig.date_worldgen_ends).toordinal()
-        )
+        self.config = config if config is not None else Config()
+        self.current_date = datetime.datetime.strptime(self.config.basic.date_worldgen_begins, '%Y-%m-%d')
+        self.ending_date = datetime.datetime.strptime(self.config.basic.date_worldgen_ends, '%Y-%m-%d')
         self.time_of_day = "day"
-        self.date = self.get_date()
+        self.leap_year = False
         self.town = None
-        # Prepare a listing of all simulated events, which will facilitate debugging later
-        self.events = []
-        # A simulation's event number allows the precise ordering of events that
-        # happened on the same timestep -- every time an event happens, it requests an
-        # event number from Simulation.assign_event_number(), which also increments the running counter
-        self.event_number = -1
-        # Prepare a listing of all people born on each day -- this is used to
-        # age people on their birthdays; we start with (2, 29) initialized because
-        # we need to perform a check every March 1 to ensure that all leap-year babies
-        # celebrate their birthday that day on non-leap years
-        self.birthdays = {(2, 29): set()}
-        # Prepare a number that will hold a single random number that is generated daily -- this
-        # facilitates certain things that should be determined randomly but remain constant across
-        # a timestep, e.g., whether a person locked their door before leaving home
-        self.random_number_this_timestep = random.random()
-        self.weather = None
-        # Keep track of some metadata about timesteps that have actually been simulated
-        self.last_simulated_day = self.ordinal_date
+        self.events = OrderedSet()
+        self.birthdays = defaultdict(lambda: OrderedSet())
+        self.random_number_this_timestep = 0.0
+        self.weather = "good"
+        self.last_simulated_day = self.current_date.toordinal()
         self.n_simulated_timesteps = 0
-        # Prepare a story recognizer -- this a module whose job is to excavate nuggets of dramatic
-        # intrigue from the raw emergent material generated by this simulation
         self.story_recognizer = StoryRecognizer(simulation=self)
+        self.verbose = verbose
 
-    @property
-    def random_person(self):
-        """Return a random person living in the town of this simulation instance."""
-        return random.choice(list(self.town.residents))
+    def get_date_str(self):
+        """Return a formatted date string"""
+        return "{} of {}".format(
+            self.time_of_day.title(),
+            self.current_date.strftime("%A %d, %B %Y"))
 
-    @property
-    def random_company(self):
-        """Return a random company in the town of this simulation instance."""
-        return random.choice(list(self.town.companies))
-
-    def recent_events(self):
-        """Pretty-print the last five simulated events (for debugging purposes)."""
-        for recent_event in self.events[-5:]:
+    def recent_events(self, n=5):
+        """Pretty-print the last n simulated events (for debugging purposes)."""
+        for recent_event in self.events[-n:]:
             print(recent_event)
+
+    def register_birthday(self, birthday, person):
+        """Add person to dictionary of birthdays"""
+        self.birthdays[birthday].add(person)
+
+    def register_event(self, event):
+        """Add event to history"""
+        self.events.add(event)
 
     def establish_setting(self):
         """Establish the town that will be simulated."""
-        # Generate a town plan with at least two tracts
-        print("Generating a town...")
-        time.sleep(0.7)
-        self.town = town.Town(self)
-        while len(self.town.tracts) < 2:
-            self.town = town.Town(self)
+        if self.verbose:
+            print("Generating a town (world seed: {})..."
+                .format(self.config.basic.seed))
+
+        random.seed(self.config.basic.seed)
+
+        self.current_date = datetime.datetime.strptime(self.config.basic.date_worldgen_begins, '%Y-%m-%d')
+        self.ending_date = datetime.datetime.strptime(self.config.basic.date_worldgen_ends, '%Y-%m-%d')
+
+        self.town = Town(self.current_date.year)
+        self.town.generate_layout(self.config.town_generation)
+
         # Have families establish farms on all of the town tracts except one,
         # which will be a cemetery
-        for _ in range(len(self.town.tracts)-2):
-            farmer = PersonExNihilo(sim=self, job_opportunity_impetus=occupation.Farmer, spouse_already_generated=None)
-            business.Farm(owner=farmer)
-            # farmer.move_into_the_town(hiring_that_instigated_move=farmer.occupation)  # SHOULD BE ABLE TO DELETE THIS
+        for _ in range(len(self.town.tracts) - 2):
+            person = PersonExNihilo.create_person(self, job_opportunity_impetus=occupation.Farmer)
+            Business.create_business(business.Farm, self, person)
+
         # For the last tract, potentially have a quarry or coal mine instead of a farm
-        if random.random() <  config.BusinessesConfig.chance_of_a_coal_mine_at_time_of_town_founding:
-            owner = PersonExNihilo(sim=self, job_opportunity_impetus=occupation.Owner, spouse_already_generated=None)
-            business.CoalMine(owner=owner)
-            self.town.mayor = owner  # TODO actual mayor stuff
-        elif random.random() < config.BusinessesConfig.chance_of_a_quarry_at_time_of_town_founding:
-            owner = PersonExNihilo(sim=self, job_opportunity_impetus=occupation.Owner, spouse_already_generated=None)
-            business.Quarry(owner=owner)
-            self.town.mayor = owner  # TODO actual mayor stuff
+        if random.random() <  self.config.business.chance_of_a_coal_mine_at_time_of_town_founding:
+            person = PersonExNihilo.create_person(self, job_opportunity_impetus=occupation.Owner)
+            Business.create_business(business.CoalMine, self, person)
+
+        elif random.random() < self.config.business.chance_of_a_quarry_at_time_of_town_founding:
+            person = PersonExNihilo.create_person(self, job_opportunity_impetus=occupation.Owner)
+            Business.create_business(business.Quarry, self, person)
+
         else:
-            farmer = PersonExNihilo(sim=self, job_opportunity_impetus=occupation.Farmer, spouse_already_generated=None)
-            business.Farm(owner=farmer)
-            self.town.mayor = farmer  # TODO actual mayor stuff
+            person = PersonExNihilo.create_person(self, job_opportunity_impetus=occupation.Farmer)
+            Business.create_business(business.Farm, self, person)
+
         # Name the town -- has to come before the cemetery is instantiated,
         # so that the cemetery can be named after it
-        self.town.name = self._generate_name_for_town()
+        self.town.elect_mayor()
+        self.town.generate_name(self.config)
+
         # Establish a cemetery -- it doesn't matter who the owner is for
         # public institutions like a cemetery, it will just be used as a
         # reference with which to access this simulation instance
-        business.Cemetery(owner=self.random_person)
-        # Set the town's 'settlers' attribute
-        self.town.settlers = set(self.town.residents)
+        Business.create_business(business.Cemetery, self, self.town.random_person)
+
+        self.town.settlers = self.town.residents.copy()
+
+        if self.verbose:
+            print("Simulating {n} years of history...".format(
+                n=self.ending_date.year - self.current_date.year))
+
         # Now simulate until the specified date that worldgen ends
-        print("Simulating {n} years of history...".format(
-            n=config.BasicConfig.date_worldgen_ends[0] - config.BasicConfig.date_worldgen_begins[0]
-        ))
-        time.sleep(1.2)
-        n_days_until_worldgen_ends = self.ordinal_date_that_worldgen_ends - self.ordinal_date
+        n_days_until_worldgen_ends = self.ending_date.toordinal() - self.current_date.toordinal()
         n_timesteps_until_worldgen_ends = n_days_until_worldgen_ends * 2
         self.simulate(n_timesteps=n_timesteps_until_worldgen_ends)
-
-    def _generate_name_for_town(self):
-        """Generate a name for the town."""
-        if random.random() < self.config.get('chance_town_gets_named_for_a_settler'):
-            name = self.town.mayor.last_name
-        else:
-            name = Names.a_place_name()
-        return name
-
-    def assign_event_number(self, new_event):
-        """Assign an event number to some event, to allow for precise ordering of events that happened same timestep.
-
-        Also add the event to a listing of all simulated events; this facilitates debugging.
-        """
-        self.events.append(new_event)
-        self.event_number += 1
-        return self.event_number
-
-    @staticmethod
-    def get_random_day_of_year(year):
-        """Return a randomly chosen day in the given year."""
-        ordinal_date_on_jan_1_of_this_year = datetime.date(year, 1, 1).toordinal()
-        ordinal_date = (
-            ordinal_date_on_jan_1_of_this_year + random.randint(0, 365)
-        )
-        #datetime_object = datetime.date.fromordinal(ordinal_date)
-        #month, day = datetime_object.month, datetime_object.day
-        #return month, day, ordinal_date
-        return datetime.date.fromordinal(ordinal_date)
-
-
-    def get_date(self, ordinal_date=None):
-        """Return a pretty-printed date for ordinal date."""
-        if not ordinal_date:
-            ordinal_date = self.ordinal_date
-        year = datetime.date.fromordinal(ordinal_date).year
-        month = datetime.date.fromordinal(ordinal_date).month
-        day = datetime.date.fromordinal(ordinal_date).day
-        month_ordinals_to_names = {
-            1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July",
-            8: "August", 9: "September", 10: "October", 11: "November", 12: "December"
-        }
-        date = "{} of {} {}, {}".format(
-            # Note: for retconning, the time of day will always be whatever the actual time of day
-            # is at the beginning of the true simulation ("day", I assume), but this shouldn't matter
-            self.time_of_day.title(), month_ordinals_to_names[month], day, year
-        )
-        return date
 
     def simulate(self, n_timesteps=1):
         """Simulate activity in this town for the given number of timesteps."""
 
-        for _ in range(n_timesteps):
+        for _ in tqdm(range(n_timesteps)):
             # Do some basic bookkeeping, regardless of whether the timestep will be simulated
             self.advance_time()
             self._progress_town_businesses()
             self._simulate_births()
+
             # Potentially simulate the timestep
-            if random.random() < config.BasicConfig.chance_of_a_timestep_being_simulated:
+            if random.random() < self.config.basic.chance_of_a_timestep_being_simulated():
                 self._simulate_timestep()
-            # Write out samples from the event stream to stdout
-            try:
-                recent_event = random.choice(self.events[-10:])
-                recent_event_str = str(recent_event)[:94]
-                sys.stdout.write('\r' + recent_event_str.ljust(94))
-                sys.stdout.flush()
-            except (NameError, IndexError):  # This won't work for the first iteration of the loop
-                pass
-        sys.stdout.flush()
-        sys.stdout.write('\r{}'.format(' '*94))  # Clear out the last sampled event written to stdout
-        sys.stdout.write('\rWrapping up...')
+
+            # if self.verbose and len(self.events) > 0:
+            #     print_simulation_msg(str(self.events[-1]))
+
+        if self.verbose:
+           print_simulation_msg("Wrapping up...")
 
     def advance_time(self):
         """Advance time of day and date, if it's a new day."""
@@ -241,8 +199,6 @@ class Simulation:
         if self.time_of_day == "day":
             self._update_date()
             self._execute_birthdays()
-        else:
-            self.date = self.get_date()
         # Set a new random number for this timestep
         self.random_number_this_timestep = random.random()
         # Lastly, update the weather for today
@@ -250,29 +206,24 @@ class Simulation:
 
     def _update_date(self):
         """Update the current date, given that it's a new day."""
-        # Increment the ordinate date
-        self.ordinal_date += 1
-        # Use that to update the current date
-        new_date_tuple = datetime.date.fromordinal(self.ordinal_date)
-        if new_date_tuple.year != self.year:
-            # Happy New Year
-            self.true_year = new_date_tuple.year
-            self.year = new_date_tuple.year
-        self.month = new_date_tuple.month
-        self.day = new_date_tuple.day
-        self.date = self.get_date()
+        prev_year = self.current_date.year
+        self.current_date = self.current_date + datetime.timedelta(days=1)
+        if prev_year != self.current_date.year:
+            # Happy new year!
+            self.leap_year = is_leap_year(self.current_date.year)
 
     def _execute_birthdays(self):
         """Execute the effects of any birthdays happening today."""
         # Age any present (not dead, not departed) character whose birthday is today
-        if (self.month, self.day) not in self.birthdays:
-            self.birthdays[(self.month, self.day)] = set()
+        if (self.current_date.month, self.current_date.day) not in self.birthdays:
+            self.birthdays[(self.current_date.month, self.current_date.day)] = OrderedSet()
         else:
-            for person in self.birthdays[(self.month, self.day)]:
+            for person in self.birthdays[(self.current_date.month, self.current_date.day)]:
                 if person.present:
                     person.grow_older()
-            # Don't forget leap-year babies
-            if (self.month, self.day) == (3, 1):
+
+            # Don't forget leap-year babies on non leap years
+            if (not self.leap_year) and (self.current_date.month, self.current_date.day) == (3, 1):
                 for person in self.birthdays[(2, 29)]:
                     if person.present:
                         person.grow_older()
@@ -284,9 +235,9 @@ class Simulation:
 
     def _simulate_births(self):
         """Simulate births, even if this timestep will not actually be simulated."""
-        for person in list(self.town.residents):
+        for person in self.town.residents:
             if person.pregnant:
-                if self.ordinal_date >= person.due_date:  # Not worth the computation to be realistic about late births
+                if self.current_date.toordinal() >= person.due_date:  # Not worth the computation to be realistic about late births
                     if self.time_of_day == 'day':
                         if random.random() < 0.5:
                             person.give_birth()
@@ -297,122 +248,128 @@ class Simulation:
         """Potentially have a new business get constructed in town."""
         # If there's less than 30 vacant homes in this town and no apartment complex
         # yet, have one open up
-        if len(self.town.vacant_lots) < 30 and not self.town.businesses_of_type('ApartmentComplex'):
-            owner = self._determine_who_will_establish_new_business(business_type=business.ApartmentComplex)
-            business.ApartmentComplex(owner=owner)
-        elif random.random() < self.config.get('chance_a_business_opens_some_timestep'):
+        if len(self.town.vacant_lots) < 30 and not self.town.get_businesses_of_type('ApartmentComplex'):
+            owner = self._determine_who_will_establish_new_business(business.ApartmentComplex)
+            Business.create_business(business.ApartmentComplex, self, owner)
+
+        elif random.random() < self.config.basic.chance_a_business_opens():
             all_business_types = business.Business.__subclasses__()
             type_of_business_that_will_open = None
             tries = 0
             while not type_of_business_that_will_open:
                 tries += 1
                 randomly_selected_type = random.choice(all_business_types)
-                advent, demise, min_pop = self.config.get('business_types_advent_demise_and_minimum_population')[
+                advent, demise, min_pop = self.config.business.business_types_advent_demise_and_minimum_population[
                     randomly_selected_type
                 ]
                 # Check if the business type is era-appropriate
-                if advent < self.year < demise and self.town.population > min_pop:
+                if advent < self.current_date.year < demise and self.town.population > min_pop:
                     # Check if there aren't already too many businesses of this type in town
-                    max_number_for_this_type = self.config.get('max_number_of_business_types_at_one_time')[randomly_selected_type]
-                    if (len(self.town.businesses_of_type(randomly_selected_type.__name__)) <
+                    max_number_for_this_type = self.config.business.max_number_of_business_types_at_one_time[randomly_selected_type]
+                    if (len(self.town.get_businesses_of_type(randomly_selected_type.__name__)) <
                             max_number_for_this_type):
                         # Lastly, if this is a business that only forms on a tract, make sure
                         # there is a vacant tract for it to be established upon
-                        need_tract = randomly_selected_type in self.config.get('companies_that_get_established_on_tracts')
+                        need_tract = randomly_selected_type in self.config.business.companies_that_get_established_on_tracts
                         if (need_tract and self.town.vacant_tracts) or not need_tract:
                             type_of_business_that_will_open = randomly_selected_type
                 if self.town.population < 50 or tries > 10:  # Just not ready for more businesses yet -- grow naturally
                     break
-            if type_of_business_that_will_open in self.config.get('public_company_types'):
-                type_of_business_that_will_open(owner=self.town.mayor)
+            if type_of_business_that_will_open in self.config.business.public_company_types:
+                type_of_business_that_will_open(owner=self.town.mayor, town=self.town, date=self.current_date, config=self.config)
+                Business.create_business(type_of_business_that_will_open, self, self.town.mayor)
+
             elif type_of_business_that_will_open:
                 owner = self._determine_who_will_establish_new_business(business_type=type_of_business_that_will_open)
-                type_of_business_that_will_open(owner=owner)
+                Business.create_business(type_of_business_that_will_open, self, owner)
 
     def _determine_who_will_establish_new_business(self, business_type):
         """Select a person who will establish a new business of the given type."""
-        occupation_type_for_owner_of_this_type_of_business = (
-            self.config.get('owner_occupations_for_each_business_type')[business_type]
-        )
-        if occupation_type_for_owner_of_this_type_of_business in self.config.get('occupations_requiring_college_degree'):
-            if any(p for p in self.town.residents if p.college_graduate and not p.occupations and
-                   self.config.get('employable_as_a')[occupation_type_for_owner_of_this_type_of_business](applicant=p)):
-                # Have a fresh college graduate in town start up a dentist office or whatever it is
-                owner = next(p for p in self.town.residents if p.college_graduate and not p.occupations and
-                             self.config.get('employable_as_a')[occupation_type_for_owner_of_this_type_of_business](applicant=p))
+        owner_occupation_class = \
+            self.config.business.owner_occupations_for_each_business_type[business_type]
+
+        if owner_occupation_class in self.config.business.occupations_requiring_college_degree:
+            # get a list of residents in the town who are colleeg graduates and
+            # have no prior jobs
+            applicants = [p for p in self.town.residents
+                                    if p.college_graduate
+                                    and len(p.occupations) == 0
+                                    and self.config.business.employable_as_a[owner_occupation_class](applicant=p)]
+
+            if len(applicants) > 0:
+                return random.choice(applicants)
             else:
-                # Have someone from outside the town come in
-                owner = PersonExNihilo(
-                    sim=self, job_opportunity_impetus=occupation_type_for_owner_of_this_type_of_business,
-                    spouse_already_generated=None
-                )
+                return PersonExNihilo.create_person(self, job_opportunity_impetus=owner_occupation_class)
+
         else:
-            if self.config.get('job_levels')[occupation_type_for_owner_of_this_type_of_business] < 3:
+            if self.config.business.job_levels[owner_occupation_class] < 3:
+                applicants = [p for p in self.town.residents
+                                            if p.in_the_workforce
+                                            and len(p.occupations) == 0
+                                            and self.config.business.employable_as_a[owner_occupation_class](applicant=p)]
+
                 # Have a young person step up and start their career as a tradesman
-                if any(p for p in self.town.residents if p.in_the_workforce and not p.occupations and
-                       self.config.get('employable_as_a')[occupation_type_for_owner_of_this_type_of_business](applicant=p)):
-                    owner = next(
-                        p for p in self.town.residents if p.in_the_workforce and not p.occupations and
-                        self.config.get('employable_as_a')[occupation_type_for_owner_of_this_type_of_business](applicant=p)
-                    )
+                if len(applicants) > 0:
+                    return random.choice(applicants)
+
+                applicants = [p for p in self.town.residents
+                                            if not p.retired
+                                            and p.occupation is None
+                                            and p.in_the_workforce
+                                            and self.config.business.employable_as_a[owner_occupation_class](applicant=p)]
+
                 # Have any unemployed person in town try their hand at running a business
-                elif any(p for p in self.town.residents if not p.retired and not p.occupation and p.in_the_workforce and
-                        self.config.get('employable_as_a')[occupation_type_for_owner_of_this_type_of_business](applicant=p)):
-                    owner = next(
-                        p for p in self.town.residents if not p.retired and not p.occupation and p.in_the_workforce and
-                        self.config.get('employable_as_a')[occupation_type_for_owner_of_this_type_of_business](applicant=p)
-                    )
+                if len(applicants) > 0:
+                    return random.choice(applicants)
                 else:
                     # Have someone from outside the town come in
-                    owner = PersonExNihilo(
-                        sim=self, job_opportunity_impetus=occupation_type_for_owner_of_this_type_of_business,
-                        spouse_already_generated=None
-                    )
-            else:
-                # Have someone from outside the town come in
-                owner = PersonExNihilo(
-                    sim=self, job_opportunity_impetus=occupation_type_for_owner_of_this_type_of_business,
-                    spouse_already_generated=None
-                )
-        return owner
+                    return PersonExNihilo.create_person(self, job_opportunity_impetus=owner_occupation_class)
+
+
+        return PersonExNihilo.create_person(self, job_opportunity_impetus=owner_occupation_class)
 
     def _potentially_shut_down_businesses(self):
         """Potentially have a new business get constructed in town."""
-        chance_a_business_shuts_down_this_timestep = config.BasicConfig.chance_a_business_closes_some_timestep
+        chance_a_business_shuts_down_this_timestep = self.config.basic.chance_a_business_closes()
         chance_a_business_shuts_down_on_timestep_after_its_demise = (
             # Once its anachronistic, like a Dairy in 1960
-            config.BusinessesConfig.chance_a_business_shuts_down_on_timestep_after_its_demise
+            self.config.business.chance_a_business_shuts_down_on_timestep_after_its_demise
         )
-        for company in list(self.town.companies):
-            if company.demise <= self.year:
+        for company in self.town.businesses:
+            if company.demise <= self.current_date.year:
                 if random.random() < chance_a_business_shuts_down_on_timestep_after_its_demise:
-                    if company.__class__ not in config.BusinessesConfig.public_company_types:
-                        company.go_out_of_business(reason=None)
+                    if company.__class__ not in self.config.business.public_company_types :
+                        company.go_out_of_business(self, reason=None, date=self.current_date)
             elif random.random() < chance_a_business_shuts_down_this_timestep:
-                if company.__class__ not in config.BusinessesConfig.public_company_types:
+                if company.__class__ not in self.config.business.public_company_types:
                     if not (
                         # Don't shut down an apartment complex with people living in it,
                         # or an apartment complex that's the only one in town
                         company.__class__ is business.ApartmentComplex and company.residents or
-                        len(self.town.businesses_of_type('ApartmentComplex')) == 1
+                        len(self.town.get_businesses_of_type('ApartmentComplex')) == 1
                     ):
-                        company.go_out_of_business(reason=None)
+                        company.go_out_of_business(self, reason=None, date=self.current_date)
 
     def _simulate_timestep(self):
         """Simulate town activity for a single timestep."""
         self.n_simulated_timesteps += 1
-        for person in list(self.town.residents):
+
+        for person in self.town.residents:
             self._simulate_life_events_for_a_person_on_this_timestep(person=person)
-        days_since_last_simulated_day = self.ordinal_date - self.last_simulated_day
+
+        days_since_last_simulated_day = self.current_date.toordinal() - self.last_simulated_day
+
         # Reset all Relationship interacted_this_timestep attributes
-        for person in list(self.town.residents):
+        for person in self.town.residents:
             for other_person in person.relationships:
                 person.relationships[other_person].interacted_this_timestep = False
+
         # Have people go to the location they will be at this timestep
-        for person in list(self.town.residents):
-            person.routine.enact()
+        for person in self.town.residents:
+            person.routine.enact(date=self.current_date)
+
         # Have people initiate social interactions with one another
-        for person in list(self.town.residents):
+        for person in self.town.residents:
             # Person may have married (during an earlier iteration of this loop) and
             # then immediately departed because the new couple could not find home,
             # so we still have to make sure they actually live in the town currently before
@@ -420,7 +377,8 @@ class Simulation:
             if person in self.town.residents:
                 if person.age > 3:  # Must be at least four years old to socialize
                     person.socialize(missing_timesteps_to_account_for=days_since_last_simulated_day * 2)
-        self.last_simulated_day = self.ordinal_date
+
+        self.last_simulated_day = self.current_date.toordinal()
 
     def _simulate_life_events_for_a_person_on_this_timestep(self, person):
         """Simulate the life of the given person on this timestep."""
@@ -444,8 +402,8 @@ class Simulation:
 
     def _simulate_prospect_of_death(self, person):
         """Simulate the potential for this person to die on this timestep."""
-        if person.age > 68 and random.random() > self.config.get('chance_someone_dies_some_timestep'):
-            person.die(cause_of_death="Natural causes")
+        if person.age > 68 and random.random() > self.config.life_cycle.chance_someone_dies:
+            person.die(cause_of_death="Natural causes", date=self.current_date)
 
     def _simulate_dating(self, person):
         """Simulate the dating life of this person."""
@@ -455,16 +413,16 @@ class Simulation:
         # affinities for one another (as a function of nonreciprocal romantic affinities
         # and amount of time spent together; see relationship.py), and if a threshold
         # for mutual romantic affinity is eclipsed, they may marry (right on this timestep)
-        if person.age >= self.config.get('marriageable_age'):
-            min_mutual_spark_for_proposal = self.config.get('min_mutual_spark_value_for_someone_to_propose_marriage')
+        if person.age >= self.config.marriage.marriageable_age:
+            min_mutual_spark_for_proposal = self.config.marriage.min_mutual_spark_value_for_someone_to_propose_marriage
             people_they_have_strong_romantic_feelings_for = [
                 p for p in person.relationships if person.relationships[p].spark > min_mutual_spark_for_proposal
             ]
             for prospective_partner in people_they_have_strong_romantic_feelings_for:
-                if prospective_partner.age >= self.config.get('marriageable_age'):
+                if prospective_partner.age >= self.config.marriage.marriageable_age:
                     if prospective_partner.present and not prospective_partner.spouse:
                         if prospective_partner.relationships[person].spark > min_mutual_spark_for_proposal:
-                            person.marry(partner=prospective_partner)
+                            person.marry(partner=prospective_partner, date=self.current_date)
                             break
 
     def _simulate_marriage(self, person):
@@ -474,17 +432,15 @@ class Simulation:
 
     def _simulate_prospect_of_conception(self, person):
         """Simulate the potential for conception today in the course of this person's marriage."""
-        chance_they_are_trying_to_conceive_this_year = (
-            self.config.get('function_to_determine_chance_married_couple_are_trying_to_conceive')(
-                n_kids=len(person.marriage.children_produced)
-            )
-        )
-        chance_they_are_trying_to_conceive_this_timestep = (
+        chance_they_are_trying_to_conceive_this_year = self.config.marriage.chance_married_couple_are_trying_to_conceive(
+                len(person.marriage.children_produced))
+
+        chance_they_are_trying_to_conceive = (
             # Don't need 720, which is actual number of timesteps in a year, because their spouse will also
             # be iterated over on this timestep
-            chance_they_are_trying_to_conceive_this_year / (self.config.get('chance_of_a_timestep_being_simulated') * 365)
-        )
-        if random.random() < chance_they_are_trying_to_conceive_this_timestep:
+            chance_they_are_trying_to_conceive_this_year / (self.config.basic.chance_of_a_timestep_being_simulated() * 365))
+
+        if random.random() < chance_they_are_trying_to_conceive:
             person.have_sex(partner=person.spouse, protection=False)
         # Note: sex doesn't happen otherwise because no interesting phenomena surrounding it are
         # modeled/simulated; it's currently just a mechanism for bringing new characters into the world
@@ -494,77 +450,34 @@ class Simulation:
         # Check if this person is significantly more in love with someone else in town
         if person.love_interest:
             if person.love_interest is not person.spouse and person.love_interest.present:
-                if random.random() < self.config.get('chance_a_divorce_happens_some_timestep'):
-                    person.divorce(partner=person.spouse)
+                if random.random() < self.config.marriage.chance_of_divorce:
+                    person.divorce(partner=person.spouse, date=self.current_date)
 
     def _simulate_prospect_of_retirement(self, person):
         """Simulate the potential for this person to retire on this timestep."""
         if person.occupation and person.age > max(65, random.random() * 100):
-            person.retire()
+            person.retire(date=self.current_date)
 
     def _simulate_unemployment(self, person):
         """Simulate the given person searching for work, which may involve them getting a
         college education or deciding to leave town.
         """
-        person.look_for_work()
+        person.look_for_work(date=self.current_date)
         if not person.occupation:  # Means look_for_work() didn't succeed
-            if (not person.college_graduate and person.age > 22 and
-                    person.male if self.year < 1920 else True):
+            if self.current_date.year < 1920:
+                if (not person.college_graduate) and person.age > 22 and person.male:
+                    person.college_graduate = True
+                    return
+            else:
                 person.college_graduate = True
-            elif random.random() < self.config.get('chance_an_unemployed_person_departs_on_a_simulated_timestep'):
+                return
+
+            if random.random() < self.config.basic.chance_an_unemployed_person_departs():
                 if not (person.spouse and person.spouse.occupation):
-                    person.depart_town()
+                    person.depart_town(date=self.current_date)
 
     def _simulate_moving_out_of_parents(self, person):
         """Simulate the potential for this person to move out of their parents' home."""
         if person.occupation:
-            if random.random() < self.config.get('chance_employed_adult_will_move_out_of_parents_on_simulated_timestep'):
+            if random.random() < self.config.life_cycle.chance_employed_adult_will_move_out_of_parents:
                 person.move_out_of_parents()
-
-    def find(self, name):
-        """Return person living in this town with that name."""
-        if any(p for p in self.town.residents if p.name == name):
-            people_named_this = [p for p in self.town.residents if p.name == name]
-            if len(people_named_this) > 1:
-                print('\nWarning: Multiple {} residents are named {}; returning a complete list\n'.format(
-                    self.town.name, name
-                ))
-                return people_named_this
-            else:
-                return people_named_this[0]
-        else:
-            raise Exception('There is no one in {} named {}'.format(self.town.name, name))
-
-    def find_deceased(self, name):
-        """Return deceased person with that name."""
-        if any(p for p in self.town.deceased if p.name == name):
-            people_named_this = [p for p in self.town.deceased if p.name == name]
-            if len(people_named_this) > 1:
-                print('\nWarning: Multiple {} residents are named {}; returning a complete list\n'.format(
-                    self.town.name, name
-                ))
-                return people_named_this
-            else:
-                return people_named_this[0]
-        else:
-            raise Exception('There is no one named {} who died in {}'.format(name, self.town.name))
-
-    def find_by_hex(self, hex_value):
-        """Return person whose ID in memory has the given hex value."""
-        int_of_hex = int(hex_value, 16)
-        try:
-            person = next(
-                p for p in self.town.residents | self.town.deceased | self.town.departed if
-                id(p) == int_of_hex
-            )
-            return person
-        except StopIteration:
-            raise Exception('There is no one with that hex ID')
-
-    def find_co(self, name):
-        """Return company in this town with the given name."""
-        try:
-            company = next(c for c in self.town.companies if c.name == name)
-            return company
-        except StopIteration:
-            raise Exception('There is no company in {} named {}'.format(self.town.name, name))

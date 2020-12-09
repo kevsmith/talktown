@@ -23,7 +23,7 @@ class Routine:
         """Return string representation."""
         return "Daily routine of {}".format(self.person.name)
 
-    def enact(self):
+    def enact(self, date):
         """Enact this person's daily routine for a particular timestep."""
         new_location, occasion = self.decide_where_to_go()
         self.occasion = occasion
@@ -45,13 +45,13 @@ class Routine:
                 location, occasion = self.person.home, 'home'  # Kids stay home at night
         # If they have a job...
         elif self.person.occupation and self.person.occupation.shift == self.person.sim.time_of_day:
-            if random.random() < config.chance_someone_doesnt_have_to_work_some_day:
-                if random.random() < config.chance_someone_leaves_home_on_day_off[self.person.sim.time_of_day]:
+            if random.random() < config.routine.chance_someone_doesnt_have_to_work_some_day:
+                if random.random() < config.routine.chance_someone_leaves_home_on_day_off[self.person.sim.time_of_day]:
                     location, occasion = self._go_in_public()
                 else:
                     location, occasion = self.person.home, 'home'
-            elif random.random() < config.chance_someone_calls_in_sick_to_work:
-                if random.random() < config.chance_someone_leaves_home_on_sick_day:
+            elif random.random() < config.routine.chance_someone_calls_in_sick_to_work:
+                if random.random() < config.routine.chance_someone_leaves_home_on_sick_day:
                     location, occasion = self._go_in_public()
                 else:
                     location, occasion = self.person.home, 'home'
@@ -65,9 +65,9 @@ class Routine:
                 (self.person.personality.extroversion + self.person.personality.openness_to_experience) / 2.0
             )
             if self.person.kids_at_home:
-                chance_of_leaving_home *= config.chance_someone_leaves_home_multiplier_due_to_kids
-            floor = config.chance_someone_leaves_home_on_day_off_floor[self.person.sim.time_of_day]
-            cap = config.chance_someone_leaves_home_on_day_off_cap[self.person.sim.time_of_day]
+                chance_of_leaving_home *= config.routine.chance_someone_leaves_home_multiplier_due_to_kids
+            floor = config.routine.chance_someone_leaves_home_on_day_off_floor[self.person.sim.time_of_day]
+            cap = config.routine.chance_someone_leaves_home_on_day_off_cap[self.person.sim.time_of_day]
             if chance_of_leaving_home < floor:
                 chance_of_leaving_home = floor
             elif chance_of_leaving_home > cap:
@@ -80,11 +80,11 @@ class Routine:
 
     def _go_to_school_or_daycare(self):
         """Return the school or day care that this child attends."""
-        person_is_school_age = self.person.age > self.person.sim.config.age_children_start_going_to_school
+        person_is_school_age = self.person.age > self.person.sim.config.life_cycle.age_children_start_going_to_school
         if person_is_school_age and self.person.town.school:
             school_or_day_care = self.person.town.school
-        elif not person_is_school_age and self.person.town.businesses_of_type('DayCare'):
-            school_or_day_care = self.person.town.businesses_of_type('DayCare')[0]
+        elif not person_is_school_age and self.person.town.get_businesses_of_type('DayCare'):
+            school_or_day_care = self.person.town.get_businesses_of_type('DayCare')[0]
         else:
             school_or_day_care = self.person.home  # They stay home
         return school_or_day_care
@@ -92,7 +92,7 @@ class Routine:
     def _go_in_public(self):
         """Return the location in public that this person will go to."""
         config = self.person.sim.config
-        if random.random() < config.chance_someone_goes_on_errand_vs_visits_someone:
+        if random.random() < config.routine.chance_someone_goes_on_errand_vs_visits_someone:
             location, occasion = self._go_on_errand_or_out_for_leisure()
         else:
             person_they_will_visit = self._visit_someone()
@@ -114,16 +114,16 @@ class Routine:
         # TODO -- have people become loyal to certain businesses (or maybe not because such small town?)
         # Determine the type of service this errand will be for
         x = random.random()
-        service_type_probs = config.probabilities_of_errand_for_service_type[self.person.sim.time_of_day]
+        service_type_probs = config.routine.probabilities_of_errand_for_service_type[self.person.sim.time_of_day]
         service_type_of_errand = next(
             # See config.py to understand what's going on here
             e for e in service_type_probs if service_type_probs[e][0] <= x <= service_type_probs[e][1]
         )
         businesses_in_town_providing_that_service = [
-            b for b in self.person.town.companies if service_type_of_errand in b.services
+            b for b in self.person.town.businesses if service_type_of_errand in b.services
         ]
         if businesses_in_town_providing_that_service:
-            if random.random() < config.chance_someone_goes_to_closest_business_of_type:
+            if random.random() < config.routine.chance_someone_goes_to_closest_business_of_type:
                 # Choose between the one closest to your house and the one closest to your work
                 closest_to_home = min(
                     businesses_in_town_providing_that_service,
@@ -148,7 +148,7 @@ class Routine:
         # simply set occasion to None, since _go_in_public() will end up having the
         # person staying home anyway (and will change occasion to 'home')
         if one_i_will_go_to:
-            occasion = config.business_type_to_occasion_for_visit[one_i_will_go_to.__class__.__name__]
+            occasion = config.routine.business_type_to_occasion_for_visit[one_i_will_go_to.__class__.__name__]
         else:
             occasion = None
         return one_i_will_go_to, occasion
@@ -158,7 +158,7 @@ class Routine:
         config = self.person.sim.config
         x = random.random()
         relationship_to_person_who_person_who_will_be_visited = next(
-            r for r in config.who_someone_visiting_will_visit_probabilities if r[0][0] <= x <= r[0][1]
+            r for r in config.routine.who_someone_visiting_will_visit_probabilities if r[0][0] <= x <= r[0][1]
         )[1]
         if (relationship_to_person_who_person_who_will_be_visited == 'nb' and
                 self.person.neighbors):

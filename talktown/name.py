@@ -1,5 +1,5 @@
 from .corpora import Names
-
+from ordered_set import OrderedSet
 
 class Name(str):
     """A name, in the sense of a persistent object that can be passed on.
@@ -9,7 +9,7 @@ class Name(str):
     the name as a persistent entity, not as a text symbol.
     """
 
-    def __init__(self, value, progenitor, conceived_by=(), derived_from=()):
+    def __init__(self, value, progenitor, conceived_by=None, derived_from=None):
         """Initialize a Name object.
 
         @param progenitor: The Person with whom this name originates; if this is a hyphenated surname,
@@ -53,7 +53,7 @@ class Name(str):
     @property
     def bearers(self):
         """Return all people who have had this name."""
-        bearers = set()
+        bearers = OrderedSet()
         for person in self.progenitor.sim.town.all_time_residents:
             if (person.first_name is self or
                     person.middle_name is self or

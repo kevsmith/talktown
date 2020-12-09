@@ -1,36 +1,30 @@
 import random
+from ordered_set import OrderedSet
+from .place import Place
+from . import life_event
 
-
-class DwellingPlace:
+class Residence(Place):
     """A dwelling place in a town."""
 
-    def __init__(self, lot, owners):
-        """Initialize a DwellingPlace object.
+    def __init__(self, lot, owners, town, address):
+        """Initialize a Residence object.
 
         @param lot: A Lot object representing the lot this building is on.
         """
-        self.id = owners[0].sim.current_place_id
-        owners[0].sim.current_place_id += 1
-        self.town = lot.town
-        self.town.dwelling_places.add(self)
+        super().__init__()
+        self.town = town
+        self.town.residences.add(self)
         self.lot = lot
-        if self.__class__ is House:
-            self.house, self.apartment = True, False
-            self.address = self.lot.address
-        elif self.__class__ is Apartment:
-            self.house, self.apartment = False, True
-            self.address = ""  # Gets set by Apartment._init_generate_address()
+        self.address = address
         self.house_number = lot.house_number
         self.block = lot.block
-        self.residents = set()
-        self.former_residents = set()
+        self.residents = OrderedSet()
+        self.former_residents = OrderedSet()
         self.transactions = []
         self.move_ins = []
         self.move_outs = []
-        self.owners = set()  # Gets set via self._init_ownership()
-        self.former_owners = set()
-        self._init_ownership(initial_owners=owners)
-        self.people_here_now = set()  # People at home on a specific time step (either a resident or visitor)
+        self.owners = OrderedSet()  # Gets set via self._init_ownership()
+        self.former_owners = OrderedSet()
         self.demolition = None  # Potentially gets set by event.Demolition.__init__()
 
     def __str__(self):
@@ -50,7 +44,7 @@ class DwellingPlace:
                 round(self.town.sim.random_number_this_timestep * len(self.owners))
             )
             index_in_owners_of_last_to_leave -= 1
-            last_to_leave = list(self.owners)[index_in_owners_of_last_to_leave]
+            last_to_leave = sorted(self.owners)[index_in_owners_of_last_to_leave]
             if self.town.sim.random_number_this_timestep > last_to_leave.personality.neuroticism:
                 locked = True
         elif self.town.sim.time_of_day == "night":
@@ -63,33 +57,24 @@ class DwellingPlace:
     def name(self):
         """Return the name of this residence."""
         if self.owners:
-            owner_surnames = set([o.last_name for o in self.owners])
+            owner_surnames = OrderedSet([o.last_name for o in self.owners])
             name = "{} residence".format('-'.join(owner_surnames))
         else:
             name = 'Uninhabited residence'
         return name
 
-    def _init_ownership(self, initial_owners):
+    def init_ownership(self, initial_owners, date):
         """Set the initial owners of this dwelling place."""
         # I'm doing this klugey thing for now because of circular-dependency issue
-        list(initial_owners)[0].purchase_home(purchasers=initial_owners, home=self)
+        list(initial_owners)[0].purchase_home(purchasers=initial_owners, home=self, date=date)
         # HomePurchase(subjects=initial_owners, home=self, realtor=None)
 
-    def get_feature(self, feature_type):
-        """Return this person's feature of the given type."""
-        if feature_type == "home is apartment":
-            return "yes" if self.apartment else "no"
-        elif feature_type == "home block":
-            return self.block
-        elif feature_type == "home address":
-            return self.address
 
-
-class Apartment(DwellingPlace):
+class Apartment(Residence):
     """An individual apartment unit in an apartment building in a town."""
 
-    def __init__(self, apartment_complex, lot, unit_number):
-        super().__init__(lot, owners=(apartment_complex.owner.person,))
+    def __init__(self, apartment_complex, owners, lot, unit_number, town):
+        super().__init__(lot, owners=owners, town=town, address=lot.address)
         self.complex = apartment_complex
         self.unit_number = unit_number
         self.address = self._init_generate_address()
@@ -107,7 +92,7 @@ class Apartment(DwellingPlace):
         else:
             return "{}, {}".format(self.name, self.address)
 
-class House(DwellingPlace):
+class House(Residence):
     """A house in a town.
 
     @param lot: A Lot object representing the lot this building is on.
@@ -115,14 +100,24 @@ class House(DwellingPlace):
                          the construction of this building.
     """
 
-    def __init__(self, lot, construction):
-        super().__init__(lot, owners=construction.subjects)
-        self.construction = construction
+    def __init__(self, lot, town, owners):
+        super().__init__(lot, owners, town, lot.address)
+        self.construction = None
         self.lot.building = self
+
+
+    def on_demolition(self, demolition_event):
+        """Callback function triggered when business is demolished"""
+        self.demolition = demolition_event
+        self.lot.building = None
+        self.lot.former_buildings.append(self)
+        self.town.residences.remove(self)
+        if self.residents:
+            life_event.Demolition.have_the_now_displaced_residents_move(self, demolition_event)
 
     def __str__(self):
         """Return string representation."""
-        if self.demolition:
+        if self.demolition is not None:
             construction_year = self.construction.year
             demolition_year = self.demolition.year
             return "{}, {} ({}-{})".format(self.name, self.address, construction_year, demolition_year)

@@ -1,5 +1,9 @@
 import random
 import heapq
+import collections
+import logging
+from ordered_set import OrderedSet
+from .residence import House, Apartment
 from .corpora import Names
 from . import life_event
 from .name import Name
@@ -11,187 +15,197 @@ from .routine import Routine
 from .whereabouts import Whereabouts
 from .relationship import Acquaintance
 from . import face
+from .utils import get_random_day_of_year
+from .artifact import Gravestone
+
 
 class Person:
     """A person living in a procedurally generated American small town.
 
-    Attributes:
-        sim (simulation.Simulation): Talk of the town simulation
-        id (int): Unique person identifier
-        type (str): What type of person is this
-        birth (life_event.Birth): Birth event associated with this character
-        town (town.Town): Town this person was born in
+        Attributes
+        ----------
+        sim: Simulation
+            Talk of the town simulation
+        id: int
+            Unique person identifier
+        name_tuple: NameTuple
+            Components of this person's name
+        birth: life_event.Birth
+            Birth event associated with this character
+        town: Town
+            Town this person lives in
+        age: int
+            How old is this person
+        sex: str
+            This person's current sex
+        in_the_workforce: bool
+            Is this person eligible to work
+        biological_mother: Person
+            Person who gave birth to this person
+        biological_father: Person
+            Person who impregnated the biological mother
+        mother: Person
+            This person's mlegal mother
+        father: Person
+            This person's legal father
+        tags: OrderedSet
+            Arbitrary strings describing the person
+        death_year: int
+            Year this person died (-1 if alive)
+        alive: bool
+            Is this person still alive
+        attracted_to: OrderedSet
+            Sexes this person is attracted to
+        home: Residence
+            Person's home
+        life_events: OrderedSet[Event]
+            Events in this person's life
+        whereabouts: Whereabouts
+            Tracks a person's whereabouts at every timestep of their life
+        named_for: Tuple[Person, Person]
+            From whom first and middle name originate, respectively
     """
 
-    def __init__(self, sim, birth):
+    # This gets incremented each time a new person is born/generated,
+    # which affords a persistent ID for each person
+    next_id = 0
+
+    def __init__(self, sim, first_name, last_name, town, biological_mother, biological_father, date, **kwargs):
         """Initialize a Person object."""
         # Set location and simplay instance
         self.sim = sim
-        self.id = self.sim.current_person_id
-        self.sim.current_person_id += 1
-        self.birth = birth
-        if birth:
-            self.town = self.birth.town
-            if self.town:
-                self.town.residents.add(self)
-            # Set parents
-            self.biological_mother = birth.biological_mother
-            self.mother = birth.mother
-            self.biological_father = birth.biological_father
-            self.father = birth.father
-            self.parents = {self.mother, self.father}
-            # Set date of birth
-            self.birth_year = birth.year
-            self.birthday = (birth.month, birth.day)  # This gets added to Simulation.birthdays by Birth.__init__()
-            # Set attributes pertaining to age
-            self.age = 0
-            self.adult = False
-            self.in_the_workforce = False  # Not whether they are currently working, but just in the workforce broadly
-        else:  # PersonExNihilo
-            self.town = None
-            self.biological_mother = None
-            self.mother = None
-            self.biological_father = None
-            self.father = None
-            self.parents = set()
-            self.birth_year = None  # Gets set by PersonExNihilo.__init__()
-            self.birthday = (None, None)  # Gets set by PersonExNihilo.get_random_day_of_year()
-            # Set attributes pertaining to age
-            self.age = None  # These will get initialized by PersonExNihilo.__init__()
-            self.adult = False
-            self.in_the_workforce = False
-        # Set sex
-        self.male, self.female = (True, False) if random.random() < 0.5 else (False, True)
-        self.tag = ''  # Allows players to tag characters with arbitrary strings
-        # Set misc attributes
+        self.id = Person.next_id; Person.next_id += 1
+        self.first_name = first_name
+        self.middle_name = kwargs.get("middle_name", "")
+        self.last_name = last_name
+        self.name_suffix = kwargs.get("name_suffix", "")
+        self.maiden_name = last_name
+        self.town = town
+        self.age = 0
+        self.sex = random.choice(["male", "female"])
+        self.in_the_workforce = False
+        self.birth = kwargs.get("birth", None)
+        self.biological_mother = biological_mother
+        self.biological_father = biological_father
+        self.mother = biological_mother
+        self.father = biological_mother.spouse if biological_mother else None
+        self.birth_year = date.year
+        self.birthday = (date.month, date.day)
+        self.tags = OrderedSet([])
         self.alive = True
-        self.death_year = None
+        self.death_year = -1
         self.gravestone = None
-        self.home = None  # Must come before setting routine
-        # Set biological characteristics
-        self.infertile = self._init_fertility(male=self.male, config=self.sim.config)
-        self.attracted_to_men, self.attracted_to_women = (
-            self._init_sexuality()
-        )
-        # Set face
-        self.face = Face(person=self)
-        # Set personality
-        self.personality = Personality(person=self)
-        # Set mental attributes (just memory currently)
-        self.mind = Mind(person=self)
-        # Set daily routine
-        self.routine = Routine(person=self)
-        # Prepare Whereabouts object, which tracks a person's whereabouts at every
-        # timestep of their life
+        self.attracted_to = Person.generate_sexuality(self.sex, sim.config)
+        self.home = kwargs.get("home", None)
+        self.infertile = Person.generate_fertility(self.sex, sim.config)
+        self.face = Face(self)
+        self.personality = Personality(self)
+        self.mind = Mind(self)
+        self.routine = Routine(self)
         self.whereabouts = Whereabouts(person=self)
-        # Prepare name attributes that get set by event.Birth._name_baby() (or PersonExNihilo._init_name())
-        self.first_name = None
-        self.middle_name = None
-        self.last_name = None
-        self.suffix = None
-        self.maiden_name = None
-        self.named_for = (None, None)  # From whom first and middle name originate, respectively
+        self.life_events = OrderedSet([])
+        self.named_for = kwargs.get("named_for", (None, None))
         # Prepare familial attributes that get populated by self.init_familial_attributes()
-        self.ancestors = set()  # Biological only
-        self.descendants = set()  # Biological only
-        self.immediate_family = set()
-        self.extended_family = set()
-        self.greatgrandparents = set()
-        self.grandparents = set()
-        self.aunts = set()
-        self.uncles = set()
-        self.siblings = set()
-        self.full_siblings = set()
-        self.half_siblings = set()
-        self.brothers = set()
-        self.full_brothers = set()
-        self.half_brothers = set()
-        self.sisters = set()
-        self.full_sisters = set()
-        self.half_sisters = set()
-        self.cousins = set()
-        self.kids = set()
-        self.sons = set()
-        self.daughters = set()
-        self.nephews = set()
-        self.nieces = set()
-        self.grandchildren = set()
-        self.grandsons = set()
-        self.granddaughters = set()
-        self.greatgrandchildren = set()
-        self.greatgrandsons = set()
-        self.greatgranddaughters = set()
-        self.bio_parents = set()
-        self.bio_grandparents = set()
-        self.bio_siblings = set()
-        self.bio_full_siblings = set()
-        self.bio_half_siblings = set()
-        self.bio_brothers = set()
-        self.bio_full_brothers = set()
-        self.bio_half_brothers = set()
-        self.bio_sisters = set()
-        self.bio_full_sisters = set()
-        self.bio_half_sisters = set()
-        self.bio_immediate_family = set()
-        self.bio_greatgrandparents = set()
-        self.bio_uncles = set()
-        self.bio_aunts = set()
-        self.bio_cousins = set()
-        self.bio_nephews = set()
-        self.bio_nieces = set()
-        self.bio_ancestors = set()
-        self.bio_extended_family = set()
-        # Set familial attributes; update those of family members
-        self._init_familial_attributes()
-        self._init_update_familial_attributes_of_family_members()
+        self.ancestors = OrderedSet()  # Biological only
+        self.descendants = OrderedSet()  # Biological only
+        self.immediate_family = OrderedSet()
+        self.extended_family = OrderedSet()
+        self.greatgrandparents = OrderedSet()
+        self.grandparents = OrderedSet()
+        self.aunts = OrderedSet()
+        self.uncles = OrderedSet()
+        self.siblings = OrderedSet()
+        self.full_siblings = OrderedSet()
+        self.half_siblings = OrderedSet()
+        self.brothers = OrderedSet()
+        self.full_brothers = OrderedSet()
+        self.half_brothers = OrderedSet()
+        self.sisters = OrderedSet()
+        self.full_sisters = OrderedSet()
+        self.half_sisters = OrderedSet()
+        self.cousins = OrderedSet()
+        self.kids = OrderedSet()
+        self.sons = OrderedSet()
+        self.daughters = OrderedSet()
+        self.nephews = OrderedSet()
+        self.nieces = OrderedSet()
+        self.grandchildren = OrderedSet()
+        self.grandsons = OrderedSet()
+        self.granddaughters = OrderedSet()
+        self.greatgrandchildren = OrderedSet()
+        self.greatgrandsons = OrderedSet()
+        self.greatgranddaughters = OrderedSet()
+        self.bio_grandparents = OrderedSet()
+        self.bio_siblings = OrderedSet()
+        self.bio_full_siblings = OrderedSet()
+        self.bio_half_siblings = OrderedSet()
+        self.bio_brothers = OrderedSet()
+        self.bio_full_brothers = OrderedSet()
+        self.bio_half_brothers = OrderedSet()
+        self.bio_sisters = OrderedSet()
+        self.bio_full_sisters = OrderedSet()
+        self.bio_half_sisters = OrderedSet()
+        self.bio_immediate_family = OrderedSet()
+        self.bio_greatgrandparents = OrderedSet()
+        self.bio_uncles = OrderedSet()
+        self.bio_aunts = OrderedSet()
+        self.bio_cousins = OrderedSet()
+        self.bio_nephews = OrderedSet()
+        self.bio_nieces = OrderedSet()
+        self.bio_ancestors = OrderedSet()
+        self.bio_extended_family = OrderedSet()
         # Prepare attributes representing this person's romantic relationships
         self.spouse = None
         self.widowed = False
-        self.relationships = {}
-        self.sexual_partners = set()
+        self.relationships = dict()
+        self.sexual_partners = OrderedSet()
         # Prepare attributes representing this person's social relationships
-        self.acquaintances = set()
-        self.friends = set()
-        self.enemies = set()
-        self.neighbors = set()
-        self.former_neighbors = set()
-        self.coworkers = set()
-        self.former_coworkers = set()
+        self.acquaintances = OrderedSet()
+        self.friends = OrderedSet()
+        self.enemies = OrderedSet()
+        self.neighbors = OrderedSet()
+        self.former_neighbors = OrderedSet()
+        self.coworkers = OrderedSet()
+        self.former_coworkers = OrderedSet()
         self.best_friend = None
         self.worst_enemy = None
         self.love_interest = None
         self.significant_other = None
-        self.charge_of_best_friend = 0.0  # These get used to track changes to a person's major relationships
+        # These get used to track changes to a person's major relationships
+        self.charge_of_best_friend = 0.0
         self.charge_of_worst_enemy = 0.0
         self.spark_of_love_interest = 0.0
-        self.talked_to_this_year = set()
-        self.befriended_this_year = set()
-        self.salience_of_other_people = {}  # Maps potentially every other person to their salience to this person
+        self.talked_to_this_year = OrderedSet()
+        self.befriended_this_year = OrderedSet()
+        # Maps potentially every other person to their salience to this person
+        self.salience_of_other_people = dict()
         self._init_salience_values()
         # Prepare attributes pertaining to pregnancy
         self.pregnant = False
         self.impregnated_by = None
         self.conception_year = None  # Year of conception
-        self.due_date = None  # Actual ordinal date 270 days from conception (currently)
+        # Actual ordinal date 270 days from conception (currently)
+        self.due_date = None
         # Prepare attributes repre senting events in this person's life
-        self.adoption = None
-        self.marriage = None
-        self.marriages = []
-        self.divorces = []
-        self.adoptions = []
-        self.moves = []  # From one home to another
-        self.lay_offs = []  # Being laid off by a company that goes out of business
-        self.name_changes = []
-        self.building_commissions = set()  # Constructions of houses or buildings that they commissioned
+        self.adoption = None    # Person's adoption
+        self.marriage = None    # Person's current marriage
+        self.marriages = []     # All this person's marriages
+        self.divorces = []      # All this person's divorces
+        self.adoptions = []     # All the times this person adopted someone
+        self.moves = []         # All this persons moves to a new home
+        self.lay_offs = []      # Being laid off by a company that goes out of business
+        self.name_changes = []  # All the times this person changed their name
+        # Constructions of houses or buildings that they commissioned
+        self.building_commissions = OrderedSet()
         self.home_purchases = []
         self.retirement = None
         self.departure = None  # Leaving the town, i.e., leaving the simulation
         self.death = None
         # Set and prepare attributes pertaining to business affairs
         self.money = self._init_money()
-        self.occupation = None
-        self.occupations = []
-        self.former_contractors = set()
+        self.occupation = None  # Current job
+        self.occupations = []   # All jobs ever held by this person
+        self.former_contractors = OrderedSet()
         self.retired = False
         # Prepare attributes pertaining to education
         self.college_graduate = False
@@ -201,67 +215,101 @@ class Person:
         # will always be modified by self.go_to()
         self.location = None
         # Prepare attributes pertaining to this person's knowledge
-        self.all_belief_facets = set()  # Used to make batch calls to Facet.decay_strength()
-        # Miscellaneous attributes pertaining to artifacts this person is wearing
+        # Used to make batch calls to Facet.decay_strength()
+        self.all_belief_facets = OrderedSet()
         self.wedding_ring_on_finger = None
-        # Currently, whether a character is the player is only considered by Conversation
-        # objects (when deciding whether to elicit a dialogue move from the player)
-        self.player = False
 
-    def __str__(self):
-        """Return string representation."""
-        if self.present:
-            return "{}, {} years old".format(self.name, self.age)
-        elif self.departure:
-            return "{}, left town in {}".format(self.name, self.departure.year)
+    @property
+    def male(self):
+        """Is this person male"""
+        return self.sex == "male"
+
+    @property
+    def female(self):
+        """Is this person female"""
+        return self.sex == "female"
+
+    @property
+    def adult(self):
+        """Is this person an adult"""
+        return self.age >= 18
+
+    @property
+    def attracted_to_men(self):
+        """Is this person attracted to men"""
+        return "male" in self.attracted_to
+
+    @property
+    def attracted_to_women(self):
+        """Is this person attracted to men"""
+        return "female" in self.attracted_to
+
+    @property
+    def parents(self):
+        parents = OrderedSet()
+        if self.mother is not None:
+            parents.add(self.mother)
+        if self.father is not None:
+            parents.add(self.father)
+        return parents
+
+    @property
+    def biological_parents(self):
+        biological_parents = OrderedSet()
+        if self.biological_mother is not None:
+            biological_parents.add(self.biological_mother)
+        if self.biological_father is not None:
+            biological_parents.add(self.biological_father)
+        return biological_parents
+
+    @property
+    def most_recent_life_event(self):
+        """Return the most recent event in this person's life"""
+        if len(self.life_events) > 0:
+            return self.life_events[-1]
         else:
-            return "{}, {}-{}".format(self.name, self.birth_year, self.death_year)
-
-    def __gt__(self, other):
-        """Greater than"""
-        return self.id > other.id
+            return None
 
     @staticmethod
-    def _init_fertility(male, config):
+    def generate_fertility(sex, config):
         """Determine whether this person will be able to reproduce."""
         x = random.random()
-        if male and x < config.male_infertility_rate:
+        if sex == "male" and x < config.misc_character.male_infertility_rate:
             infertile = True
-        elif not male and x < config.female_infertility_rate:
+        elif sex == "female" and x < config.misc_character.female_infertility_rate:
             infertile = True
         else:
             infertile = False
         return infertile
 
-    def _init_sexuality(self):
+    @staticmethod
+    def generate_sexuality(sex, config):
         """Determine this person's sexuality."""
-        config = self.sim.config
+        attracted_to = OrderedSet([])
         x = random.random()
-        if x < config.homosexuality_incidence:
+        if x < config.misc_character.homosexuality_incidence:
             # Homosexual
-            if self.male:
-                attracted_to_men = True
-                attracted_to_women = False
+            if sex == "male":
+                attracted_to.add("male")
             else:
-                attracted_to_men = False
-                attracted_to_women = True
-        elif x < config.homosexuality_incidence+config.bisexuality_incidence:
+                attracted_to.add("female")
+
+        elif x < config.misc_character.homosexuality_incidence + config.misc_character.bisexuality_incidence:
             # Bisexual
-            attracted_to_men = True
-            attracted_to_women = True
-        elif x < config.homosexuality_incidence+config.bisexuality_incidence+config.asexuality_incidence:
+            attracted_to.add("male")
+            attracted_to.add("female")
+
+        elif x < config.misc_character.homosexuality_incidence + config.misc_character.bisexuality_incidence + config.misc_character.asexuality_incidence:
             # Asexual
-            attracted_to_men = True
-            attracted_to_women = True
+            attracted_to.add("male")
+            attracted_to.add("female")
         else:
             # Heterosexual
-            if self.male:
-                attracted_to_men = False
-                attracted_to_women = True
+            if sex == "male":
+                attracted_to.add("female")
             else:
-                attracted_to_men = True
-                attracted_to_women = False
-        return attracted_to_men, attracted_to_women
+                attracted_to.add("male")
+        return attracted_to
 
     def _init_familial_attributes(self):
         """Populate lists representing this person's family members."""
@@ -272,73 +320,143 @@ class Person:
 
     def _init_immediate_family(self):
         """Populate lists representing this person's (legal) immediate family."""
-        self.grandparents = self.father.parents | self.mother.parents
-        self.siblings = self.father.kids | self.mother.kids
-        self.full_siblings = self.father.kids & self.mother.kids
-        self.half_siblings = self.father.kids ^ self.mother.kids
-        self.brothers = self.father.sons | self.mother.sons
-        self.full_brothers = self.father.sons & self.mother.sons
-        self.half_brothers = self.father.sons ^ self.mother.sons
-        self.sisters = self.father.daughters | self.mother.daughters
-        self.full_sisters = self.father.daughters & self.mother.daughters
-        self.half_sisters = self.father.daughters ^ self.mother.daughters
+        self.grandparents = (self.father.parents if self.father else OrderedSet()) \
+            | (self.mother.parents if self.mother else OrderedSet())
+
+        self.siblings = (self.father.kids if self.father else OrderedSet()) \
+            | (self.mother.kids if self.mother else OrderedSet())
+
+        self.full_siblings = (self.father.kids if self.father else OrderedSet()) \
+            & (self.mother.kids if self.mother else OrderedSet())
+
+        self.half_siblings = (self.father.kids if self.father else OrderedSet()) \
+            ^ (self.mother.kids if self.mother else OrderedSet())
+
+        self.brothers = (self.father.sons if self.father else OrderedSet()) \
+            | (self.mother.sons if self.mother else OrderedSet())
+
+        self.full_brothers = (self.father.sons if self.father else OrderedSet()) \
+            & (self.mother.sons if self.mother else OrderedSet())
+
+        self.half_brothers = (self.father.sons if self.father else OrderedSet()) \
+            ^ (self.mother.sons if self.mother else OrderedSet())
+
+        self.sisters = (self.father.daughters if self.father else OrderedSet()) \
+            | (self.mother.daughters if self.mother else OrderedSet())
+
+        self.full_sisters = (self.father.daughters if self.father else OrderedSet()) \
+            & (self.mother.daughters if self.mother else OrderedSet())
+
+        self.half_sisters = (self.father.daughters if self.father else OrderedSet()) \
+            ^ (self.mother.daughters if self.mother else OrderedSet())
+
         self.immediate_family = self.grandparents | self.parents | self.siblings
 
     def _init_biological_immediate_family(self):
         """Populate lists representing this person's immediate."""
-        self.bio_parents = {self.biological_mother, self.biological_father}
-        self.bio_grandparents = self.biological_father.parents | self.biological_mother.parents
-        self.bio_siblings = self.biological_father.kids | self.biological_mother.kids
-        self.bio_full_siblings = self.biological_father.kids & self.biological_mother.kids
-        self.bio_half_siblings = self.biological_father.kids ^ self.biological_mother.kids
-        self.bio_brothers = self.biological_father.sons | self.biological_mother.sons
-        self.bio_full_brothers = self.biological_father.sons & self.biological_mother.sons
-        self.bio_half_brothers = self.biological_father.sons ^ self.biological_mother.sons
-        self.bio_sisters = self.biological_father.daughters | self.biological_mother.daughters
-        self.bio_full_sisters = self.biological_father.daughters & self.biological_mother.daughters
-        self.bio_half_sisters = self.biological_father.daughters ^ self.biological_mother.daughters
-        self.bio_immediate_family = self.bio_grandparents | self.bio_parents | self.bio_siblings
+        self.bio_grandparents = (self.biological_father.biological_parents if self.biological_father else OrderedSet()) \
+            | (self.biological_mother.biological_parents if self.biological_mother else OrderedSet())
+
+        self.bio_siblings = (self.biological_father.kids if self.biological_father else OrderedSet()) \
+            | (self.biological_mother.kids if self.biological_mother else OrderedSet())
+
+        self.bio_full_siblings = (self.biological_father.kids if self.biological_father else OrderedSet()) \
+            & (self.biological_mother.kids if self.biological_mother else OrderedSet())
+
+        self.bio_half_siblings = (self.biological_father.kids if self.biological_father else OrderedSet()) \
+            ^ (self.biological_mother.kids if self.biological_mother else OrderedSet())
+
+        self.bio_brothers = (self.biological_father.sons if self.biological_father else OrderedSet()) \
+            | (self.biological_mother.sons if self.biological_mother else OrderedSet())
+
+        self.bio_full_brothers = (self.biological_father.sons if self.biological_father else OrderedSet()) \
+            & (self.biological_mother.sons if self.biological_mother else OrderedSet())
+
+        self.bio_half_brothers = (self.biological_father.sons if self.biological_father else OrderedSet()) \
+            ^ (self.biological_mother.sons if self.biological_mother else OrderedSet())
+
+        self.bio_sisters = (self.biological_father.daughters if self.biological_father else OrderedSet()) \
+            | (self.biological_mother.daughters if self.biological_mother else OrderedSet())
+
+        self.bio_full_sisters = (self.biological_father.daughters if self.biological_father else OrderedSet()) \
+            & (self.biological_mother.daughters if self.biological_mother else OrderedSet())
+
+        self.bio_half_sisters = (self.biological_father.daughters if self.biological_father else OrderedSet()) \
+            ^ (self.biological_mother.daughters if self.biological_mother else OrderedSet())
+
+        self.bio_immediate_family = self.bio_grandparents | self.biological_parents | self.bio_siblings
 
     def _init_extended_family(self):
         """Populate lists representing this person's (legal) extended family."""
-        self.greatgrandparents = self.father.grandparents | self.mother.grandparents
-        self.uncles = self.father.brothers | self.mother.brothers
-        self.aunts = self.father.sisters | self.mother.sisters
-        self.cousins = self.father.nieces | self.father.nephews | self.mother.nieces | self.mother.nephews
-        self.nephews = self.father.grandsons | self.mother.grandsons
-        self.nieces = self.father.granddaughters | self.mother.granddaughters
-        self.ancestors = self.father.ancestors | self.mother.ancestors | self.parents
-        self.extended_family = (
-            self.greatgrandparents | self.immediate_family | self.uncles | self.aunts |
-            self.cousins | self.nieces | self.nephews
-        )
+        self.greatgrandparents = (self.father.grandparents if self.father else OrderedSet()) \
+            | (self.mother.grandparents if self.mother else OrderedSet())
+
+        self.uncles = (self.father.brothers if self.father else OrderedSet()) \
+            | (self.mother.brothers if self.mother else OrderedSet())
+
+        self.aunts = (self.father.sisters if self.father else OrderedSet()) \
+            | (self.mother.sisters if self.mother else OrderedSet())
+
+        self.cousins = (self.father.nieces if self.father else OrderedSet()) \
+            | (self.father.nephews if self.father else OrderedSet()) \
+            | (self.mother.nieces if self.mother else OrderedSet()) \
+            | (self.mother.nephews if self.mother else OrderedSet())
+
+        self.nephews = (self.father.grandsons if self.father else OrderedSet()) \
+            | (self.mother.grandsons if self.mother else OrderedSet())
+
+        self.nieces = (self.father.granddaughters if self.father else OrderedSet()) \
+            | (self.mother.granddaughters if self.mother else OrderedSet())
+
+        self.ancestors = (self.father.ancestors if self.father else OrderedSet()) \
+            | (self.mother.ancestors if self.mother else OrderedSet()) \
+            | self.parents
+
+        self.extended_family = self.greatgrandparents | self.immediate_family \
+            | self.uncles | self.aunts | self.cousins | self.nieces | self.nephews
 
     def _init_biological_extended_family(self):
         """Populate lists representing this person's (legal) extended family."""
-        self.bio_greatgrandparents = self.father.grandparents | self.mother.grandparents
-        self.bio_uncles = self.father.brothers | self.mother.brothers
-        self.bio_aunts = self.father.sisters | self.mother.sisters
-        self.bio_cousins = self.father.nieces | self.father.nephews | self.mother.nieces | self.mother.nephews
-        self.bio_nephews = self.father.grandsons | self.mother.grandsons
-        self.bio_nieces = self.father.granddaughters | self.mother.granddaughters
-        self.bio_ancestors = self.father.ancestors | self.mother.ancestors | self.parents
-        self.bio_extended_family = (
-            self.bio_greatgrandparents | self.bio_immediate_family | self.bio_uncles | self.bio_aunts |
-            self.bio_cousins | self.bio_nieces | self.bio_nephews
-        )
+        self.bio_greatgrandparents = (self.biological_father.bio_greatgrandparents if self.biological_father else OrderedSet()) \
+            | (self.biological_mother.bio_greatgrandparents if self.biological_mother else OrderedSet())
+
+        self.bio_uncles = (self.biological_father.bio_brothers if self.biological_father else OrderedSet()) \
+            | (self.biological_mother.bio_brothers if self.biological_mother else OrderedSet())
+
+        self.bio_aunts = (self.biological_father.bio_sisters if self.biological_father else OrderedSet()) \
+            | (self.biological_mother.bio_sisters if self.biological_mother else OrderedSet())
+
+        self.bio_cousins = (self.biological_father.bio_nieces if self.biological_father else OrderedSet()) \
+            | (self.biological_father.bio_nephews if self.biological_father else OrderedSet()) \
+            | (self.biological_mother.bio_nieces if self.biological_mother else OrderedSet()) \
+            | (self.biological_mother.bio_nephews if self.biological_mother else OrderedSet())
+
+        self.bio_nephews = (self.biological_father.grandsons if self.biological_father else OrderedSet()) \
+            | (self.biological_mother.grandsons if self.biological_mother else OrderedSet())
+
+        self.bio_nieces = (self.biological_father.granddaughters if self.biological_father else OrderedSet()) \
+            | (self.biological_mother.granddaughters if self.biological_mother else OrderedSet())
+
+        self.bio_ancestors = (self.biological_father.bio_ancestors if self.biological_father else OrderedSet()) \
+            | (self.biological_mother.bio_ancestors if self.biological_mother else OrderedSet()) \
+            | self.biological_parents
+
+        self.bio_extended_family = self.bio_greatgrandparents | self.bio_immediate_family \
+            | self.bio_uncles | self.bio_aunts | self.bio_cousins | self.bio_nieces | self.bio_nephews
 
     def _init_update_familial_attributes_of_family_members(self):
         """Update familial attributes of myself and family members."""
-        config = self.sim.config
         for member in self.immediate_family:
             member.immediate_family.add(self)
             member.update_salience_of(
-                entity=self, change=config.salience_increment_from_relationship_change["immediate family"]
+                entity=self, change=self.sim.config.salience.salience_increment_from_relationship_change[
+                    "immediate family"]
             )
         for member in self.extended_family:
             member.extended_family.add(self)
             member.update_salience_of(
-                entity=self, change=config.salience_increment_from_relationship_change["extended family"]
+                entity=self, change=self.sim.config.salience.salience_increment_from_relationship_change[
+                    "extended family"]
             )
         # Update for gender-specific familial attributes
         if self.male:
@@ -404,24 +522,29 @@ class Person:
             hs.half_siblings.add(self)
         for c in self.cousins:
             c.cousins.add(self)
+        for p in self.parents:
+            p.kids.add(self)
 
     def _init_salience_values(self):
         """Determine an initial salience value for every other person associated with this newborn."""
-        config = self.sim.config
         for person in self.ancestors:
             self.update_salience_of(
-                entity=person, change=config.salience_increment_from_relationship_change["ancestor"]
+                entity=person, change=self.sim.config.salience.salience_increment_from_relationship_change[
+                    "ancestor"]
             )
         for person in self.extended_family:
             self.update_salience_of(
-                entity=person, change=config.salience_increment_from_relationship_change["extended family"]
+                entity=person, change=self.sim.config.salience.salience_increment_from_relationship_change[
+                    "extended family"]
             )
         for person in self.immediate_family:
             self.update_salience_of(
-                entity=person, change=config.salience_increment_from_relationship_change["immediate family"]
+                entity=person, change=self.sim.config.salience.salience_increment_from_relationship_change[
+                    "immediate family"]
             )
         self.update_salience_of(
-            entity=self, change=config.salience_increment_from_relationship_change["self"]
+            entity=self, change=self.sim.config.salience.salience_increment_from_relationship_change[
+                "self"]
         )
 
     def _init_money(self):
@@ -462,9 +585,9 @@ class Person:
     @property
     def full_name(self):
         """Return a person's full name."""
-        if self.suffix:
+        if self.name_suffix != "":
             full_name = "{0} {1} {2} {3}".format(
-                self.first_name, self.middle_name, self.last_name, self.suffix
+                self.first_name, self.middle_name, self.last_name, self.name_suffix
             )
         else:
             full_name = "{0} {1} {2}".format(
@@ -487,20 +610,12 @@ class Person:
     @property
     def name(self):
         """Return a person's name."""
-        if self.suffix:
-            name = "{0} {1} {2}".format(self.first_name, self.last_name, self.suffix)
+        if self.name_suffix != "":
+            name = "{0} {1} {2}".format(
+                self.first_name, self.last_name, self.name_suffix)
         else:
             name = "{0} {1}".format(self.first_name, self.last_name)
         return name
-
-    @property
-    def nametag(self):
-        """Return a person's name, appended with their tag, if any."""
-        if self.tag:
-            nametag = "{0} {1}".format(self.name, self.tag)
-        else:
-            nametag = self.name
-        return nametag
 
     @property
     def dead(self):
@@ -526,7 +641,7 @@ class Person:
     @property
     def present(self):
         """Return whether the person is alive and in the town."""
-        if self.alive and not self.departure:
+        if self.alive and self.departure is None:
             return True
         else:
             return False
@@ -547,11 +662,14 @@ class Person:
         elif any(k for k in self.kids if k.adult and k.present):
             next_of_kin = next(k for k in self.kids if k.adult and k.present)
         elif any(f for f in self.siblings if f.adult and f.present):
-            next_of_kin = next(f for f in self.siblings if f.adult and f.present)
+            next_of_kin = next(
+                f for f in self.siblings if f.adult and f.present)
         elif any(f for f in self.extended_family if f.adult and f.present):
-            next_of_kin = next(f for f in self.extended_family if f.adult and f.present)
+            next_of_kin = next(
+                f for f in self.extended_family if f.adult and f.present)
         elif any(f for f in self.friends if f.adult and f.present):
-            next_of_kin = next(f for f in self.friends if f.adult and f.present)
+            next_of_kin = next(
+                f for f in self.friends if f.adult and f.present)
         else:
             next_of_kin = random.choice(
                 [r for r in self.town.residents if r.adult and r.present]
@@ -561,7 +679,7 @@ class Person:
     @property
     def nuclear_family(self):
         """Return this person's nuclear family."""
-        nuclear_family = {self}
+        nuclear_family = OrderedSet([self])
         if self.spouse and self.spouse.present:
             nuclear_family.add(self.spouse)
         for kid in self.spouse.kids & self.kids if self.spouse else self.kids:
@@ -572,29 +690,9 @@ class Person:
     @property
     def kids_at_home(self):
         """Return kids of this person that live with them, if any."""
-        kids_at_home = {k for k in self.kids if k.home is self.home and k.present}
+        kids_at_home = OrderedSet(
+            [k for k in self.kids if k.home is self.home and k.present])
         return kids_at_home
-
-    @property
-    def life_events(self):
-        """Return the major events of this person's life."""
-        events = [self.birth, self.adoption]
-        events += self.moves
-        events += self.lay_offs
-        events += [job.hiring for job in self.occupations]
-        events += self.marriages
-        events += [kid.birth for kid in self.kids]
-        events += self.divorces
-        events += self.name_changes
-        events += self.home_purchases
-        events += list(self.building_commissions)
-        if self.retirement:
-            events.append(self.retirement)
-        events += [self.departure, self.death]
-        while None in events:
-            events.remove(None)
-        events.sort(key=lambda ev: ev.event_id)  # Sort chronologically
-        return events
 
     @property
     def year_i_moved_here(self):
@@ -604,7 +702,7 @@ class Person:
     @property
     def years_i_lived_here(self):
         """Return the number of years this person has lived in this town"""
-        return self.sim.year - self.year_i_moved_here
+        return self.sim.current_date.year - self.year_i_moved_here
 
     @property
     def age_and_gender_description(self):
@@ -672,7 +770,8 @@ class Person:
         # Cut off the article ('a' or 'an') at the beginning of the
         # age_and_gender_description so that we can prepend a
         # skin-color tidbit
-        age_and_gender_description = ' '.join(self.age_and_gender_description.split()[1:])
+        age_and_gender_description = ' '.join(
+            self.age_and_gender_description.split()[1:])
         return "a {broad_skin_color}-skinned {age_and_gender} with {prominent_features}{deceased}".format(
             broad_skin_color=broader_skin_color[self.face.skin.color],
             age_and_gender=age_and_gender_description,
@@ -709,140 +808,13 @@ class Person:
     @property
     def is_captivated_by(self):
         """The set of people that this person is romantically captivated by."""
-        spark_threshold_for_being_captivated = self.sim.config.spark_threshold_for_being_captivated
+        spark_threshold_for_being_captivated = self.sim.config.story_recognition.spark_threshold_for_being_captivated
         return [p for p in self.relationships if self.relationships[p].spark > spark_threshold_for_being_captivated]
 
     def recount_life_history(self):
         """Print out the major life events in this person's simulated life."""
         for life_event in self.life_events:
             print(life_event)
-
-    def get_feature(self, feature_type):
-        """Return this person's feature of the given type."""
-        # Sex
-        if feature_type == "sex":
-            return 'm' if self.male else 'f'
-        # Status
-        if feature_type == "status":
-            if self.present:
-                return "alive"
-            elif self.dead:
-                return "dead"
-            elif self.departure:
-                return "departed"
-        elif feature_type == "departure year":
-            return 'None' if not self.departure else str(self.departure.year)
-        elif feature_type == "marital status":
-            if self.spouse:
-                return 'married'
-            elif not self.marriages:
-                return 'single'
-            elif self.widowed:
-                return 'widowed'
-            else:
-                return 'divorced'
-        # Age
-        elif feature_type == "birth year":
-            return str(self.birth_year)
-        elif feature_type == "death year":
-            return str(self.death_year)
-        elif feature_type == "approximate age":
-            return '{}0s'.format(self.age/10)
-        # Name
-        elif feature_type == "first name":
-            return self.first_name
-        elif feature_type == "middle name":
-            return self.middle_name
-        elif feature_type == "last name":
-            return self.last_name
-        elif feature_type == "suffix":
-            return self.suffix if self.suffix else 'None'  # Because '' reserve for forgettings
-        elif feature_type == "surname ethnicity":
-            return self.last_name.ethnicity
-        elif feature_type == "hyphenated surname":
-            return 'yes' if self.last_name.hyphenated else 'no'
-        # Occupation
-        elif feature_type == "workplace":
-            return "None" if not self.occupations else self.occupations[-1].company.name  # Name of company
-        elif feature_type == "job title":
-            return "None" if not self.occupations else self.occupations[-1].vocation
-        elif feature_type == "job shift":
-            return "None" if not self.occupations else self.occupations[-1].shift
-        elif feature_type == "workplace address":
-            return "None" if not self.occupations else self.occupations[-1].company.address
-        elif feature_type == "workplace block":
-            return "None" if not self.occupations else self.occupations[-1].company.block
-        elif feature_type == "job status":
-            if self.occupation:
-                return "employed"
-            elif self.retired:
-                return "retired"
-            else:
-                return "unemployed"
-        # Home
-        elif feature_type == "home":
-            return self.home.name
-        elif feature_type == "home address":
-            return self.home.address
-        elif feature_type == "home block":
-            return self.home.block
-        # Appearance
-        elif feature_type == "skin color":
-            return self.face.skin.color
-        elif feature_type == "head size":
-            return self.face.head.size
-        elif feature_type == "head shape":
-            return self.face.head.shape
-        elif feature_type == "hair length":
-            return self.face.hair.length
-        elif feature_type == "hair color":
-            return self.face.hair.color
-        elif feature_type == "eyebrow size":
-            return self.face.eyebrows.size
-        elif feature_type == "eyebrow color":
-            return self.face.eyebrows.color
-        elif feature_type == "mouth size":
-            return self.face.mouth.size
-        elif feature_type == "ear size":
-            return self.face.ears.size
-        elif feature_type == "ear angle":
-            return self.face.ears.angle
-        elif feature_type == "nose size":
-            return self.face.nose.size
-        elif feature_type == "nose shape":
-            return self.face.nose.shape
-        elif feature_type == "eye size":
-            return self.face.eyes.size
-        elif feature_type == "eye shape":
-            return self.face.eyes.shape
-        elif feature_type == "eye color":
-            return self.face.eyes.color
-        elif feature_type == "eye horizontal settedness":
-            return self.face.eyes.horizontal_settedness
-        elif feature_type == "eye vertical settedness":
-            return self.face.eyes.vertical_settedness
-        elif feature_type == "facial hair style":
-            return self.face.facial_hair.style
-        elif feature_type == "freckles":
-            return self.face.distinctive_features.freckles
-        elif feature_type == "birthmark":
-            return self.face.distinctive_features.birthmark
-        elif feature_type == "scar":
-            return self.face.distinctive_features.scar
-        elif feature_type == "tattoo":
-            return self.face.distinctive_features.tattoo
-        elif feature_type == "glasses":
-            return self.face.distinctive_features.glasses
-        elif feature_type == "sunglasses":
-            return self.face.distinctive_features.sunglasses
-        # Have to do special thing for whereabouts, because they are indexed by date;
-        # specifically, we parse the feature type, which will look something like
-        # 'whereabouts 723099-1'
-        elif 'whereabouts' in feature_type:
-            timestep = feature_type[12:]
-            ordinal_date, day_or_night = timestep.split('-')
-            whereabout_object = self.whereabouts.date[(int(ordinal_date), int(day_or_night))]
-            return whereabout_object.location.name
 
     def _common_familial_relation_to_me(self, person):
         """Return the immediate common familial relation to the given person, if any.
@@ -1123,21 +1095,25 @@ class Person:
             hinge = self.spouse
             relations.append((relation, hinge))
         if self.father and any(d for d in self.father.divorces if person in d.subjects):
-            relation = "father's ex-{}".format('husband' if person.male else 'wife')
+            relation = "father's ex-{}".format(
+                'husband' if person.male else 'wife')
             hinge = self.father
             relations.append((relation, hinge))
         if self.mother and any(d for d in self.mother.divorces if person in d.subjects):
-            relation = "mother's ex-{}".format('husband' if person.male else 'wife')
+            relation = "mother's ex-{}".format(
+                'husband' if person.male else 'wife')
             hinge = self.mother
             relations.append((relation, hinge))
         if any(s for s in self.brothers if any(d for d in s.divorces if person in d.subjects)):
-            relation = "brother's ex-{}".format('husband' if person.male else 'wife')
+            relation = "brother's ex-{}".format(
+                'husband' if person.male else 'wife')
             hinge = next(
                 s for s in self.brothers if any(d for d in s.divorces if person in d.subjects)
             )
             relations.append((relation, hinge))
         if any(s for s in self.sisters if any(d for d in s.divorces if person in d.subjects)):
-            relation = "sister's ex-{}".format('husband' if person.male else 'wife')
+            relation = "sister's ex-{}".format(
+                'husband' if person.male else 'wife')
             hinge = next(
                 s for s in self.sisters if any(d for d in s.divorces if person in d.subjects)
             )
@@ -1145,7 +1121,8 @@ class Person:
         if any(s for s in self.brothers if any(
                 m for m in s.marriages if person in m.subjects and m.terminus is person.death and
                 person is not s)):
-            relation = "brother's deceased {}".format('husband' if person.male else 'wife')
+            relation = "brother's deceased {}".format(
+                'husband' if person.male else 'wife')
             hinge = next(
                 s for s in self.brothers if any(
                     m for m in s.marriages if person in m.subjects and m.terminus is person.death)
@@ -1154,7 +1131,8 @@ class Person:
         if any(s for s in self.sisters if any(
                 m for m in s.marriages if person in m.subjects and m.terminus is person.death and
                 person is not s)):
-            relation = "sister's deceased {}".format('husband' if person.male else 'wife')
+            relation = "sister's deceased {}".format(
+                'husband' if person.male else 'wife')
             hinge = next(
                 s for s in self.sisters if any(
                     m for m in s.marriages if person in m.subjects and m.terminus is person.death)
@@ -1163,7 +1141,8 @@ class Person:
         if any(s for s in self.brothers if any(
                 m for m in s.marriages if person in m.subjects and m.terminus is s.death and
                 person is not s)):
-            relation = "deceased brother's former {}".format('husband' if person.male else 'wife')
+            relation = "deceased brother's former {}".format(
+                'husband' if person.male else 'wife')
             hinge = next(
                 s for s in self.brothers if any(
                     m for m in s.marriages if person in m.subjects and m.terminus is s.death)
@@ -1172,7 +1151,8 @@ class Person:
         if any(s for s in self.sisters if any(
                 m for m in s.marriages if person in m.subjects and m.terminus is s.death and
                 person is not s)):
-            relation = "deceased sister's former {}".format('husband' if person.male else 'wife')
+            relation = "deceased sister's former {}".format(
+                'husband' if person.male else 'wife')
             hinge = next(
                 s for s in self.sisters if any(
                     m for m in s.marriages if person in m.subjects and m.terminus is s.death)
@@ -1206,7 +1186,7 @@ class Person:
             relation = 'stepfather' if person.male else 'stepmother'
             hinge = None
             relations.append((relation, hinge))
-        if self.greatgrandparents & person.greatgrandparents and person not in self.siblings | self.cousins | {self}:
+        if self.greatgrandparents & person.greatgrandparents and person not in self.siblings | self.cousins | OrderedSet([self]):
             relation = 'second cousin'
             hinge = None
             relations.append((relation, hinge))
@@ -1276,7 +1256,8 @@ class Person:
             hinge = s
             relations.append((relation, hinge))
         if self.spouse and person is self.spouse.best_friend:
-            relation = "{}'s best friend".format('husband' if self.spouse.male else 'wife')
+            relation = "{}'s best friend".format(
+                'husband' if self.spouse.male else 'wife')
             hinge = self.spouse
             relations.append((relation, hinge))
         if self.mother and person is self.mother.best_friend:
@@ -1289,16 +1270,19 @@ class Person:
             relations.append((relation, hinge))
         if any(s for s in self.siblings if person is s.best_friend):
             s = next(s for s in self.siblings if person is s.best_friend)
-            relation = "{}'s best friend".format('brother' if s.male else 'sister')
+            relation = "{}'s best friend".format(
+                'brother' if s.male else 'sister')
             hinge = s
             relations.append((relation, hinge))
         if any(k for k in self.kids if person is k.best_friend):
             k = next(k for k in self.kids if person is k.best_friend)
-            relation = "{}'s best friend".format('son' if k.male else 'daughter')
+            relation = "{}'s best friend".format(
+                'son' if k.male else 'daughter')
             hinge = k
             relations.append((relation, hinge))
         if self.spouse and person in self.spouse.coworkers:
-            relation = "{}'s coworker".format('husband' if self.spouse.male else 'wife')
+            relation = "{}'s coworker".format(
+                'husband' if self.spouse.male else 'wife')
             hinge = self.spouse
             relations.append((relation, hinge))
         if self.mother and person in self.mother.coworkers:
@@ -1314,7 +1298,8 @@ class Person:
             hinge = None
             relations.append((relation, hinge))
         if self.spouse and person in self.spouse.friends:
-            relation = "{}'s friend".format('husband' if self.spouse.male else 'wife')
+            relation = "{}'s friend".format(
+                'husband' if self.spouse.male else 'wife')
             hinge = self.spouse
             relations.append((relation, hinge))
         if self.mother and person in self.mother.friends:
@@ -1346,74 +1331,199 @@ class Person:
                 keepers.append((relation, hinge))
         return keepers
 
-    def change_name(self, new_last_name, reason):
+    def change_name(self, new_last_name, reason, date=None):
         """Change this person's (official) name."""
-        lawyer = self.contract_person_of_certain_occupation(occupation_in_question=occupation.Lawyer)
-        if lawyer:
-            lawyer.occupation.file_name_change(person=self, new_last_name=new_last_name, reason=reason)
-        else:
-            life_event.NameChange(subject=self, new_last_name=new_last_name, reason=reason, lawyer=None)
+        lawyer = self.contract_person_of_certain_occupation(
+            occupation_in_question=occupation.Lawyer)
 
-    def have_sex(self, partner, protection):
+        if date is None:
+            date = get_random_day_of_year(self.sim.current_date.year)
+
+        life_event.NameChange(subject=self,
+                              new_last_name=new_last_name,
+                              reason=reason,
+                              lawyer=lawyer,
+                              date=date)
+
+    def have_sex(self, partner, protection, date=None):
         """Have sex with partner."""
         # TODO model social aspects surrounding sex, etc., beyond mere conception mechanism
-        config = self.sim.config
+        if date is None:
+            date = self.sim.current_date
+
         self.sexual_partners.add(partner)
         partner.sexual_partners.add(self)
-        if self.male != partner.male and not self.pregnant and not partner.pregnant:
-            if (not protection) or random.random() < config.chance_sexual_protection_does_not_work:
-                self._determine_whether_pregnant(partner=partner)
+        if self != partner.male and not self.pregnant and not partner.pregnant:
+            if (not protection) or random.random() < self.sim.config.life_cycle.chance_sexual_protection_does_not_work:
+                self._determine_whether_pregnant(partner, date)
 
-    def _determine_whether_pregnant(self, partner):
+    def _determine_whether_pregnant(self, partner, date):
         """Determine whether self or partner is now pregnant."""
-        config = self.sim.config
         # Determine whether child is conceived
         female_partner = self if self.female else partner
-        chance_of_conception = config.function_to_determine_chance_of_conception(
+        chance_of_conception = self.sim.config.life_cycle.chance_of_conception(
             female_age=female_partner.age
         )
         if random.random() < chance_of_conception:
             female_partner.impregnated_by = self if female_partner is partner else partner
-            female_partner.conception_year = self.sim.year
-            female_partner.due_date = self.sim.ordinal_date + 270
+            female_partner.conception_year = date.year
+            female_partner.due_date = date.toordinal() + 270
             female_partner.pregnant = True
 
-    def marry(self, partner):
+    def marry(self, partner, date=None):
         """Marry partner."""
         assert(self.present and not self.spouse and partner.present and not partner.spouse), (
-            "{0} tried to marry {1}, but one of them is dead, departed, or married.".format(self.name, partner.name)
+            "{0} tried to marry {1}, but one of them is dead, departed, or married.".format(
+                self.name, partner.name)
         )
-        if self.present and partner.present:
-            life_event.Marriage(subjects=(self, partner))
 
-    def divorce(self, partner):
+        if date is None:
+            get_random_day_of_year(year=self.sim.current_date.year)
+
+        if self.present and partner.present:
+            marriage_event = life_event.Marriage(subjects=(self, partner), date=date)
+
+            self.marriage = marriage_event
+            self.life_events.add(marriage_event)
+
+            partner.marriage = marriage_event
+            partner.life_events.add(marriage_event)
+
+            life_event.Marriage.update_newlywed_attributes(self, partner, marriage_event)
+            life_event.Marriage.have_newlyweds_pool_money_together(self, partner, marriage_event)
+            life_event.Marriage.have_one_spouse_and_possibly_stepchildren_take_the_others_name(self, partner, marriage_event)
+
+            if self.town:
+                life_event.Marriage.decide_and_enact_new_living_arrangements(self, partner, marriage_event)
+            # If they're not in the town yet (marriage between two PersonsExNihilo during
+            # world generation), living arrangements will be made once they move into it
+
+            self.sim.register_event(marriage_event)
+
+    def divorce(self, partner, date):
         """Divorce partner."""
-        assert(self.alive and partner.alive), "{0} tried to divorce {1}, but one of them is dead."
+        assert(
+            self.alive and partner.alive), "{0} tried to divorce {1}, but one of them is dead."
         assert(partner is self.spouse and partner.spouse is self), (
-            "{0} tried to divorce {1}, whom they are not married to.".format(self.name, partner.name)
+            "{0} tried to divorce {1}, whom they are not married to.".format(
+                self.name, partner.name)
         )
         # The soon-to-be divorcees will decide together which lawyer to hire, because they are
         # technically still married (and spouses are considered as part of this method call)
-        lawyer = self.contract_person_of_certain_occupation(occupation_in_question=occupation.Lawyer)
-        life_event.Divorce(subjects=(self, partner), lawyer=lawyer.occupation if lawyer else None)
+        lawyer = self.contract_person_of_certain_occupation(
+            occupation_in_question=occupation.Lawyer)
 
-    def give_birth(self):
+        divorce = life_event.Divorce(subjects=(self, partner),
+                                     lawyer=lawyer,
+                                     date=date)
+        spouse = self.spouse
+        self.marriage.terminus = divorce
+        life_event.Divorce.have_divorcees_split_up_money(self, spouse)
+        life_event.Divorce.have_a_spouse_and_possibly_kids_change_name_back(self, divorce)
+        life_event.Divorce.update_divorcee_attributes(self, spouse, divorce)
+
+
+        if lawyer:
+            lawyer.filed_divorces.add(divorce)
+
+        if self.town:
+            life_event.Divorce.decide_and_enact_new_living_arrangements(self, spouse, divorce)
+
+        spouse.life_events.add(divorce)
+        self.life_events.add(divorce)
+        self.sim.register_event(divorce)
+
+    def give_birth(self, date=None):
         """Select a doctor and go to the hospital to give birth."""
-        doctor = self.contract_person_of_certain_occupation(occupation_in_question=occupation.Doctor)
+
+        if date is None:
+            date = self.sim.current_date
+
+        doctor = self.contract_person_of_certain_occupation(occupation.Doctor)
+
+        baby = Person(self.sim, "", "", self.town, self, self.impregnated_by, date)
+        baby._init_familial_attributes()
+        baby._init_update_familial_attributes_of_family_members()
+        life_event.Birth.generate_baby_name(baby, baby.sim.config)
+
+        birth = life_event.Birth(baby=baby, mother=self, doctor=doctor, date=date)
+
+        # Add birth to the involved parties' sets of life events
+        baby.birth = birth
+        baby.life_events.add(birth)
+        self.life_events.add(birth)
+        if baby.father:
+            baby.father.life_events.add(birth)
+
         if doctor:
-            doctor.occupation.deliver_baby(mother=self)
-        else:
-            life_event.Birth(mother=self, doctor=None)
+            doctor.baby_deliveries.add(birth)
 
-    def die(self, cause_of_death):
+        if baby.biological_father is self.spouse:
+            self.marriage.children_produced.add(baby)
+
+        if self.home:
+            baby.move(new_home=self.home, reason=birth, date=date)
+
+        if self.occupation:
+            life_event.Birth.mother_potentially_exit_workforce(self, date, birth)
+
+        life_event.Birth.reset_pregnancy_attributes(self)
+        self.sim.register_birthday((date.month, date.day), baby)
+        self.sim.register_event(birth)
+
+        # Create adoption if the father is not the biological father
+        if baby.father is not None and baby.father is not baby.biological_father:
+            adoption = life_event.Adoption(adoptee=baby, adoptive_parents=(baby.father,), date=date)
+            baby.father.life_events.add(adoption)
+            self.sim.register_event(adoption)
+
+    def die(self, cause_of_death, date):
         """Die and get interred at the local cemetery."""
-        mortician = self.next_of_kin.contract_person_of_certain_occupation(occupation_in_question=occupation.Mortician)
-        if mortician:
-            mortician.occupation.inter_body(deceased=self, cause_of_death=cause_of_death)
-        else:  # This is probably the mortician themself dying
-            life_event.Death(subject=self, mortician=None, cause_of_death=cause_of_death)
+        mortician = self.next_of_kin.contract_person_of_certain_occupation(
+            occupation_in_question=occupation.Mortician)
 
-    def look_for_work(self):
+        death = life_event.Death(subject=self,
+                                 widow=self.spouse,
+                                 mortician=mortician,
+                                 cause_of_death=cause_of_death,
+                                 date=date)
+
+        life_event.Death.update_attributes_of_deceased_and_spouse(self, death)
+        life_event.Death.vacate_job_position_of_the_deceased(self, death)
+
+        self.death = death
+        if mortician is not None:
+            mortician.body_interments.add(death)
+
+
+        self.go_to(destination=self.town.cemetery)
+        self.gravestone = Gravestone(subject=self)
+
+        # If this person has kids at home and no spouse to take care of them,
+        # have those kids depart the town (presumably to live with relatives
+        # elsewhere) -- TODO have the kids be adopted by a relative in town,
+        # but watch out, because kids at home may be old maids still living with
+        # their parents
+        if self.kids_at_home and not self.spouse:
+            for kid in self.kids_at_home:
+                kid.depart_town(self.sim.current_date)
+
+        # Update attributes of this person's home
+        self.home.residents.remove(self)
+        self.home.former_residents.add(self)
+
+        if self in self.home.owners:
+            self.home.owners.remove(self)
+            if self.home.residents and not self.home.owners:
+                life_event.Death.transfer_ownership_of_home_owned_by_the_deceased(self)
+
+        self.town.residents.remove(self)
+        self.town.deceased.add(self)
+
+        self.life_events.add(death)
+        self.sim.register_event(death)
+
+    def look_for_work(self, date):
         """Attempt to find a job at a local business.
 
         This method has every business in town that had potential job vacancies
@@ -1432,10 +1542,11 @@ class Person:
             # for which they were scored mostly highly
             if scores:
                 company, position, shift = max(scores, key=scores.get)
-                company.hire(
-                    occupation_of_need=position, shift=shift, to_replace=None,
-                    fills_supplemental_job_vacancy=True, selected_candidate=self
-                )
+                company.hire(occupation_of_need=position,
+                             shift=shift, to_replace=None,
+                             fills_supplemental_job_vacancy=True,
+                             selected_candidate=self,
+                             date=date)
 
     def _find_job_at_the_family_company(self):
         """Try to get hired by a company that your family member owns."""
@@ -1450,16 +1561,16 @@ class Person:
             # If its your parent, they will accommodate and add another supplemental position
             elif family_company.owner.person in self.parents:
                 must_add_supplemental_position = True
-                initial_job_vacancies = self.sim.config.initial_job_vacancies
-                if self.sim.config.initial_job_vacancies[family_company.__class__]['day']:
+                initial_job_vacancies = self.sim.config.business.initial_job_vacancies
+                if self.sim.config.business.initial_job_vacancies[family_company.__class__]['day']:
                     position, shift = (
                         initial_job_vacancies[family_company.__class__]['day'][0], 'day'
                     )
-                elif self.sim.config.initial_job_vacancies[family_company.__class__]['night']:
+                elif self.sim.config.business.initial_job_vacancies[family_company.__class__]['night']:
                     position, shift = (
                         initial_job_vacancies[family_company.__class__]['night'][0], 'night'
                     )
-                elif self.sim.config.initial_job_vacancies[family_company.__class__]['supplemental day']:
+                elif self.sim.config.business.initial_job_vacancies[family_company.__class__]['supplemental day']:
                     position, shift = (
                         initial_job_vacancies[family_company.__class__]['supplemental day'][0], 'day'
                     )
@@ -1478,11 +1589,13 @@ class Person:
             )
             if i_am_qualified_for_this_position:
                 if must_add_supplemental_position:
-                    family_company.supplemental_vacancies[shift].append(position)
+                    family_company.supplemental_vacancies[shift].append(
+                        position)
                 family_company.hire(
                     occupation_of_need=position, shift=shift, to_replace=None,
                     fills_supplemental_job_vacancy=True, selected_candidate=self,
-                    hired_as_a_favor=must_add_supplemental_position
+                    hired_as_a_favor=must_add_supplemental_position,
+                    date=get_random_day_of_year(self.sim.current_date.year)
                 )
                 break
 
@@ -1495,7 +1608,8 @@ class Person:
             parent_who_owns_a_company = next(
                 p for p in self.parents if p.occupation and p.occupation.company.owner is p.occupation
             )
-            family_companies.append(parent_who_owns_a_company.occupation.company)
+            family_companies.append(
+                parent_who_owns_a_company.occupation.company)
         else:
             family_members_who_own_companies = (
                 f for f in self.extended_family if f.occupation and f.occupation.company.owner is f.occupation
@@ -1506,10 +1620,10 @@ class Person:
 
     def _get_scored_as_job_candidate_by_all_companies(self):
         """Get scored as a job candidate by all companies in town for all their supplemental positions."""
-        scores = {}
+        scores = dict()
         # Assemble scores of this person as a job candidate from all companies
         # in town for all of their open positions, day- or night-shift
-        for company in self.town.companies:
+        for company in self.sim.town.businesses:
             for shift in ('day', 'night'):
                 for position in company.supplemental_vacancies[shift]:
                     i_am_qualified_for_this_position = (
@@ -1521,22 +1635,110 @@ class Person:
                         score = company.rate_job_candidate(person=self)
                         # The open positions are listed in order of priority, so
                         # penalize this position if its not the company's top priority
-                        priority = company.supplemental_vacancies[shift].index(position)
+                        priority = company.supplemental_vacancies[shift].index(
+                            position)
                         score /= priority+1
                         scores[(company, position, shift)] = score
         return scores
 
-    def move_out_of_parents(self):
+    def ff_parents(self, date):
         """Move out of parents' house."""
-        home_to_move_into = self.secure_home()
+        home_to_move_into = self.secure_home(date)
         if home_to_move_into:
-            self.move(new_home=home_to_move_into, reason=None)
+            self.move(new_home=home_to_move_into, reason=None, date=date)
         else:
-            self.depart_town()
+            self.depart_town(date=date)
 
-    def move(self, new_home, reason):
+    def move_into_the_town(self, town, hiring_event, date):
+        """Move into the town
+
+            Parameters
+            ----------
+            town: Town
+                Town to move into
+
+            hiring_event: Hiring
+                Hiring event that instigated the move
+
+            date: datetime
+                Date the charactes is moving into the town
+        """
+        self.town = town
+
+        new_home = self.secure_home(date)
+
+        if not new_home:
+            someone_elses_home = random.choice(list(self.town.residences))
+            self.move(new_home=someone_elses_home,
+                      reason=hiring_event, date=date)
+        if new_home:
+            self.move(new_home=new_home, reason=hiring_event)
+        else:
+            # Have the closest apartment complex to downtown expand to add
+            # another unit for this person to move into
+            apartment_complexes_in_town = [
+                # Check if they have units first -- have had the weird case of someone
+                # trying to build a complex right downtown and then not being able to
+                # expand that very complex itself to move into it, because it currently
+                # has no units, and thus no unit number to give the expansion unit
+                ac for ac in self.town.get_businesses_of_type('ApartmentComplex') if ac.units
+            ]
+            if len(apartment_complexes_in_town) > 3:
+                complexes_closest_to_downtown = heapq.nlargest(
+                    3, apartment_complexes_in_town,
+                    key=lambda ac: self.town.distance_between(
+                        ac.lot, self.town.downtown)
+                )
+                complex_that_will_expand = random.choice(
+                    complexes_closest_to_downtown)
+            else:
+                complex_that_will_expand = min(
+                    apartment_complexes_in_town,
+                    key=lambda ac: self.town.distance_between(
+                        ac.lot, self.town.downtown)
+                )
+            complex_that_will_expand.expand()  # This will add two new units to this complex
+            self.move(
+                new_home=complex_that_will_expand.units[-2],
+                reason=hiring_event)
+
+    def move(self, new_home, reason, date=None):
         """Move to an apartment or home."""
-        life_event.Move(subjects=tuple(self.nuclear_family), new_home=new_home, reason=reason)
+        if date is None:
+            date = get_random_day_of_year(year=self.sim.current_date.year)
+
+        move_event = life_event.Move(subjects=self.nuclear_family,
+                                     new_home=new_home, reason=reason, date=date)
+
+
+        if self.home:
+            self.home.move_outs.append(move_event)
+        new_home.move_ins.append(move_event)
+
+        # Actually move the person(s)
+        town = self.sim.town
+        for person in self.nuclear_family | OrderedSet([self]):
+            # Move out of old home, if any
+            if person.home:
+                person.home.residents.remove(person)
+                person.home.former_residents.add(person)
+
+            # Move into new home
+            person.home = new_home
+            new_home.residents.add(person)
+            person.moves.append(move_event)
+
+            # Add yourself to town residents, if you moved from outside the town
+            town.residents.add(person)
+            person.town = town
+
+            # Go to your new home
+            person.go_to(destination=new_home, occasion='home')
+        # Update .neighbor attributes for subjects, as well as their new and now former neighbors
+        life_event.Move.update_mover_and_neighbor_attributes(self.nuclear_family, new_home)
+
+        self.life_events.add(move_event)
+        self.sim.register_event(move_event)
 
     def go_to(self, destination, occasion=None):
         """Go to destination and spend this timestep there."""
@@ -1548,6 +1750,15 @@ class Person:
             # Update this person's whereabouts
             self.whereabouts.record(occasion=occasion)
 
+
+    def move_out_of_parents(self, date):
+        """Move out of parents' house."""
+        home_to_move_into = self.secure_home(date=date)
+        if home_to_move_into:
+            self.move(new_home=home_to_move_into, reason=None)
+        else:
+            self.depart_town(date=date)
+
     def pay(self, payee, amount):
         """Pay someone (for services rendered)."""
         if self.spouse:
@@ -1556,11 +1767,17 @@ class Person:
             self.money -= amount
         payee.money += amount
 
-    def retire(self):
+    def retire(self, date):
         """Retire from an occupation."""
-        life_event.Retirement(subject=self)
+        retire_event = life_event.Retirement(self, date)
 
-    def depart_town(self, forced_nuclear_family=set()):
+        self.retired = True
+        self.retirement = retire_event
+        self.occupation.terminate(reason=retire_event, date=date)
+
+        self.sim.register_event(retire_event)
+
+    def depart_town(self, date, forced_nuclear_family=None):
         """Depart the town (and thus the simulation), never to return.
 
         forced_nuclear_family is reserved for Marriage events in which the newlyweds
@@ -1571,11 +1788,29 @@ class Person:
         need to allow the assertion of a forced nuclear family for Marriage-related
         Departures.
         """
-        life_event.Departure(subject=self)
+
+        departure = life_event.Departure(subject=self, date=date)
+        self.life_events.add(departure)
+        self.sim.register_event(departure)
+
+        self.town.residents.remove(self)
+        self.town.departed.add(self)
+        self.departure = departure
+
+        self.go_to(destination=None)
+        self.home.residents.remove(self)
+        self.home.former_residents.add(self)
+
+        life_event.Departure.vacate_job_position_of_the_departed(self, departure)
+        life_event.Departure.update_neighbor_attributes(self)
+
+        # Have this person's nuclear family depart as well
         nuclear_family = forced_nuclear_family if forced_nuclear_family else self.nuclear_family
-        for person in nuclear_family - {self}:
+        for person in nuclear_family - OrderedSet([self]):
             if person in self.town.residents:
-                life_event.Departure(subject=person)
+                event = life_event.Departure(subject=person, date=date)
+                self.life_events.add(event)
+                self.sim.register_event(event)
 
     def contract_person_of_certain_occupation(self, occupation_in_question):
         """Find a person of a certain occupation.
@@ -1585,21 +1820,23 @@ class Person:
         using the scores to derive likelihoods of selecting each.
         """
         if self.town:
-            pool = list(self.town.workers_of_trade(occupation_in_question))
+            pool = list(self.town.get_workers_of_trade(occupation_in_question))
         else:  # PersonExNihilo who backstory is currently being retconned
             pool = []
         if pool:
             # If you or your spouse practice this occupation, DIY
             if isinstance(self.occupation, occupation_in_question):
-                choice = self
+                choice = self.occupation
             elif self.spouse and isinstance(self.spouse.occupation, occupation_in_question):
-                choice = self.spouse
+                choice = self.spouse.occupation
             # Otherwise, pick from the various people in town who do practice this occupation
             else:
-                potential_hire_scores = self._rate_all_potential_contractors_of_certain_occupation(pool=pool)
+                potential_hire_scores = self._rate_all_potential_contractors_of_certain_occupation(
+                    pool=pool)
                 if len(potential_hire_scores) >= 3:
                     # Pick from top three
-                    top_three_choices = heapq.nlargest(3, potential_hire_scores, key=potential_hire_scores.get)
+                    top_three_choices = heapq.nlargest(
+                        3, potential_hire_scores, key=potential_hire_scores.get)
                     if random.random() < 0.6:
                         choice = top_three_choices[0]
                     elif random.random() < 0.9:
@@ -1616,9 +1853,10 @@ class Person:
 
     def _rate_all_potential_contractors_of_certain_occupation(self, pool):
         """Score all potential hires of a certain occupation."""
-        scores = {}
-        for person in pool:
-            scores[person] = self._rate_potential_contractor_of_certain_occupation(person=person)
+        scores = dict()
+        for occupation in pool:
+            scores[occupation] = self._rate_potential_contractor_of_certain_occupation(
+                person=occupation.person)
         return scores
 
     def _rate_potential_contractor_of_certain_occupation(self, person):
@@ -1634,28 +1872,31 @@ class Person:
             people_involved_in_this_decision = (self,)
         for decision_maker in people_involved_in_this_decision:
             if person in decision_maker.immediate_family:
-                score += decision_maker.sim.config.preference_to_contract_immediate_family
-            elif person in decision_maker.extended_family:  # elif because immediate family is subset of extended family
-                score += decision_maker.sim.config.preference_to_contract_extended_family
+                score += decision_maker.sim.config.misc_character_decision_making.preference_to_contract_immediate_family
+            # elif because immediate family is subset of extended family
+            elif person in decision_maker.extended_family:
+                score += decision_maker.sim.config.misc_character_decision_making.preference_to_contract_extended_family
             if person in decision_maker.friends:
-                score += decision_maker.sim.config.preference_to_contract_friend
+                score += decision_maker.sim.config.misc_character_decision_making.preference_to_contract_friend
             elif person in decision_maker.acquaintances:
-                score += decision_maker.sim.config.preference_to_contract_acquaintance
+                score += decision_maker.sim.config.misc_character_decision_making.preference_to_contract_acquaintance
             if person in decision_maker.enemies:
-                score += decision_maker.sim.config.dispreference_to_hire_enemy
+                score += decision_maker.sim.config.misc_character_decision_making.dispreference_to_hire_enemy
             if person in decision_maker.former_contractors:
-                score += decision_maker.sim.config.preference_to_contract_former_contract
+                score += decision_maker.sim.config.misc_character_decision_making.preference_to_contract_former_contract
         # Multiply score according to this person's experience in this occupation
-        score *= person.sim.config.function_to_derive_score_multiplier_bonus_for_experience(
+        score *= person.sim.config.misc_character_decision_making.score_multiplier_bonus_for_experience(
             years_experience=person.occupation.years_experience
         )
         return score
 
-    def purchase_home(self, purchasers, home):
+    def purchase_home(self, purchasers, home, date):
         # TEMP THING DUE TO CIRCULAR DEPENDENCY -- SEE RESIDENCE.PY -- TODO
-        life_event.HomePurchase(subjects=purchasers, home=home, realtor=None)
+        event = life_event.HomePurchase(subjects=purchasers, home=home, realtor=None, date=date)
+        self.life_events.add(event)
+        self.sim.register_event(event)
 
-    def secure_home(self):
+    def secure_home(self, date):
         """Find a home to move into.
 
         The person (and their spouse, if any) will decide between all the vacant
@@ -1665,39 +1906,69 @@ class Person:
         if chosen_home_or_lot:
             if chosen_home_or_lot in self.town.vacant_lots:
                 # A vacant lot was chosen, so build
-                home_to_move_into = self._commission_construction_of_a_house(lot=chosen_home_or_lot)
+                home_to_move_into = self._commission_construction_of_a_house(lot=chosen_home_or_lot, date=date)
             elif chosen_home_or_lot in self.town.vacant_homes:
                 # A vacant home was chosen
-                home_to_move_into = self._purchase_home(home=chosen_home_or_lot)
+                home_to_move_into = self._purchase_home(home=chosen_home_or_lot, date=date)
             else:
                 raise Exception(
-                    "{} has secured a lot or home that is not known to be vacant.".format(self.name)
+                    "{} has secured a lot or home that is not known to be vacant.".format(
+                        self.name)
                 )
         else:
             home_to_move_into = None  # The town is full; this will spark a departure
         return home_to_move_into
 
-    def _commission_construction_of_a_house(self, lot):
+    def _commission_construction_of_a_house(self, lot, date):
         """Build a house to move into."""
         # Try to find an architect -- if you can't, you'll have to build it yourself
         architect = self.contract_person_of_certain_occupation(occupation_in_question=occupation.Architect)
-        architect = None if not architect else architect.occupation
-        if self.spouse:
-            clients = (self, self.spouse,)
-        else:
-            clients = (self,)
-        return life_event.HouseConstruction(subjects=clients, architect=architect, lot=lot).house
+        clients = OrderedSet([self])
 
-    def _purchase_home(self, home):
+        if self.spouse:
+            clients.add(self.spouse)
+
+        house = House(lot=lot, town=self.town, owners=clients)
+        house.init_ownership(clients, date)
+        construction_event = life_event.HouseConstruction(subjects=clients, architect=architect, lot=lot, house=house, date=date)
+
+        house.construction = construction_event
+
+        for person in clients:
+            house.owners.add(person)
+            person.life_events.add(construction_event)
+
+        if architect is not None:
+            architect.building_constructions.add(construction_event)
+
+        self.sim.register_event(construction_event)
+
+        return house
+
+    def _purchase_home(self, home, date):
         """Purchase a house or apartment unit, with the help of a realtor."""
         # Try to find a realtor -- if you can't, you'll just deal directly with the person
         realtor = self.contract_person_of_certain_occupation(occupation_in_question=occupation.Realtor)
-        realtor = None if not realtor else realtor.occupation
+        clients = OrderedSet()
+        clients.add(self)
         if self.spouse:
-            clients = (self, self.spouse,)
-        else:
-            clients = (self,)
-        return life_event.HomePurchase(subjects=clients, home=home, realtor=realtor).home
+            clients.add(self.spouse)
+
+        purchase_event = life_event.HomePurchase(subjects=clients, home=home, realtor=realtor, date=date)
+
+        life_event.HomePurchase.transfer_ownership(home, clients)
+
+        for person in clients:
+            home.owners.add(person)
+            person.life_events.add(purchase_event)
+            person.home_purchases.append(purchase_event)
+
+        home.transactions.append(purchase_event)
+
+        if realtor is not None:
+            realtor.home_sales.add(purchase_event)
+
+        return home
 
     def _choose_vacant_home_or_vacant_lot(self):
         """Choose a vacant home to move into or a vacant lot to build on.
@@ -1709,7 +1980,8 @@ class Person:
         home_and_lot_scores = self._rate_all_vacant_homes_and_vacant_lots()
         if len(home_and_lot_scores) >= 3:
             # Pick from top three
-            top_three_choices = heapq.nlargest(3, home_and_lot_scores, key=home_and_lot_scores.get)
+            top_three_choices = heapq.nlargest(
+                3, home_and_lot_scores, key=home_and_lot_scores.get)
             if random.random() < 0.6:
                 choice = top_three_choices[0]
             elif random.random() < 0.9:
@@ -1724,7 +1996,7 @@ class Person:
 
     def _rate_all_vacant_homes_and_vacant_lots(self):
         """Rate all vacant homes and vacant lots."""
-        scores = {}
+        scores = dict()
         for home in self.town.vacant_homes:
             my_score = self.rate_potential_lot(lot=home.lot)
             if self.spouse:
@@ -1739,7 +2011,8 @@ class Person:
             else:
                 spouse_score = 0
             scores[lot] = (
-                (my_score + spouse_score) * self.sim.config.penalty_for_having_to_build_a_home_vs_buying_one
+                (my_score + spouse_score) *
+                self.sim.config.misc_character_decision_making.penalty_for_having_to_build_a_home_vs_buying_one
             )
         return scores
 
@@ -1752,19 +2025,23 @@ class Person:
         a penalty that makes people less willing to build a home on a vacant lot than to move
         into a vacant home.
         """
-        config = self.sim.config
-        pull_to_live_near_that_relation = config.pull_to_live_near_family
-        pull_to_live_near_a_friend = config.pull_to_live_near_a_friend
+        pull_to_live_near_that_relation = self.sim.config.misc_character_decision_making.pull_to_live_near_family
+        pull_to_live_near_a_friend = self.sim.config.misc_character_decision_making.pull_to_live_near_a_friend
         desire_to_live_near_family = self._determine_desire_to_move_near_family()
         # Score home for its proximity to family (either positively or negatively, depending); only
         # consider family members that are alive, in town, and not living with you already (i.e., kids)
-        relatives_in_town = {f for f in self.extended_family if f.present and f.home is not self.home}
+        relatives_in_town = OrderedSet(
+            [f for f in self.extended_family if f.present and f.home is not self.home])
         score = 0
         for relative in relatives_in_town:
-            relation_to_me = self._common_familial_relation_to_me(person=relative)
-            pull_toward_someone_of_that_relation = pull_to_live_near_that_relation.get(relation_to_me, 0.0)
-            dist = self.town.distance_between(relative.home.lot, lot) + 1.0  # To avoid ZeroDivisionError
-            score += (desire_to_live_near_family * pull_toward_someone_of_that_relation) / dist
+            relation_to_me = self._common_familial_relation_to_me(
+                person=relative)
+            pull_toward_someone_of_that_relation = pull_to_live_near_that_relation.get(
+                relation_to_me, 0.0)
+            dist = self.town.distance_between(
+                relative.home.lot, lot) + 1.0  # To avoid ZeroDivisionError
+            score += (desire_to_live_near_family *
+                      pull_toward_someone_of_that_relation) / dist
         # Score for proximity to friends (only positively)
         for friend in self.friends:
             dist = self.town.distance_between(friend.home.lot, lot) + 1.0
@@ -1772,8 +2049,9 @@ class Person:
         # Score for proximity to workplace (only positively) -- will be only criterion for person
         # who is new to the town (and thus accurate_belief no one there yet)
         if self.occupation:
-            dist = self.town.distance_between(self.occupation.company.lot, lot) + 1.0
-            score += config.pull_to_live_near_workplace / dist
+            dist = self.town.distance_between(
+                self.occupation.company.lot, lot) + 1.0
+            score += self.sim.config.misc_character_decision_making.pull_to_live_near_workplace / dist
         return score
 
     def _determine_desire_to_move_near_family(self):
@@ -1782,24 +2060,25 @@ class Person:
         Currently, this relies on immutable personality traits, but eventually
         this desire could be made dynamic according to life events, etc.
         """
-        config = self.sim.config
         # People with personality C-, O+ most likely to leave home (source [1])
-        base_desire_to_live_near_family = config.desire_to_live_near_family_base
+        base_desire_to_live_near_family = self.sim.config.misc_character_decision_making.desire_to_live_near_family_base
         desire_to_live_near_family = self.personality.conscientiousness
         desire_to_live_away_from_family = self.personality.openness_to_experience
         final_desire_to_live_near_family = (
-            base_desire_to_live_near_family + desire_to_live_near_family - desire_to_live_away_from_family
+            base_desire_to_live_near_family +
+            desire_to_live_near_family - desire_to_live_away_from_family
         )
-        if final_desire_to_live_near_family < config.desire_to_live_near_family_floor:
-            final_desire_to_live_near_family = config.desire_to_live_near_family_floor
-        elif final_desire_to_live_near_family > config.desire_to_live_near_family_cap:
-            final_desire_to_live_near_family = config.desire_to_live_near_family_cap
+        if final_desire_to_live_near_family < self.sim.config.misc_character_decision_making.desire_to_live_near_family_floor:
+            final_desire_to_live_near_family = self.sim.config.misc_character_decision_making.desire_to_live_near_family_floor
+        elif final_desire_to_live_near_family > self.sim.config.misc_character_decision_making.desire_to_live_near_family_cap:
+            final_desire_to_live_near_family = self.sim.config.misc_character_decision_making.desire_to_live_near_family_cap
         return final_desire_to_live_near_family
 
     def socialize(self, missing_timesteps_to_account_for=1):
         """Socialize with nearby people."""
         if not self.location:
-            raise Exception("{} tried to socialize, but they have no location currently.".format(self.name))
+            raise Exception(
+                "{} tried to socialize, but they have no location currently.".format(self.name))
         for person in list(self.location.people_here_now):
             if self._decide_to_instigate_social_interaction(other_person=person):
                 if person not in self.relationships:
@@ -1812,7 +2091,7 @@ class Person:
         # Also cheat to simulate socializing between people that live together,
         # regardless of where they are truly located (otherwise have things like
         # a kid who has never met his mother, because she works the night shift)
-        for person in list(self.home.residents-{self}):
+        for person in list(self.home.residents-OrderedSet([self])):
             if person not in self.relationships:
                 Acquaintance(owner=self, subject=person, preceded_by=None)
             if not self.relationships[person].interacted_this_timestep:
@@ -1823,7 +2102,6 @@ class Person:
 
     def _decide_to_instigate_social_interaction(self, other_person):
         """Decide whether to instigate a social interaction with another person."""
-        config = self.sim.config
         if other_person is self or other_person.age < 5:
             chance = 0.0
         else:
@@ -1838,10 +2116,10 @@ class Person:
                     other_person=other_person
                 )
             chance = extroversion_component + friendship_or_openness_component
-            if chance < config.chance_someone_instigates_interaction_with_other_person_floor:
-                chance = config.chance_someone_instigates_interaction_with_other_person_floor
-            elif chance > config.chance_someone_instigates_interaction_with_other_person_cap:
-                chance = config.chance_someone_instigates_interaction_with_other_person_cap
+            if chance < self.sim.config.social_sim.chance_someone_instigates_interaction_with_other_person_floor:
+                chance = self.sim.config.social_sim.chance_someone_instigates_interaction_with_other_person_floor
+            elif chance > self.sim.config.social_sim.chance_someone_instigates_interaction_with_other_person_cap:
+                chance = self.sim.config.social_sim.chance_someone_instigates_interaction_with_other_person_cap
         if random.random() < chance:
             return True
         else:
@@ -1849,73 +2127,80 @@ class Person:
 
     def _get_extroversion_component_to_chance_of_social_interaction(self):
         """Return the effect of this person's extroversion on the chance of instigating social interaction."""
-        config = self.sim.config
         extroversion_component = self.personality.extroversion
-        if extroversion_component < config.chance_of_interaction_extroversion_component_floor:
-            extroversion_component = config.chance_of_interaction_extroversion_component_floor
-        elif extroversion_component > config.chance_of_interaction_extroversion_component_cap:
-            extroversion_component = config.chance_of_interaction_extroversion_component_cap
+        if extroversion_component < self.sim.config.social_sim.chance_of_interaction_extroversion_component_floor:
+            extroversion_component = self.sim.config.social_sim.chance_of_interaction_extroversion_component_floor
+        elif extroversion_component > self.sim.config.social_sim.chance_of_interaction_extroversion_component_cap:
+            extroversion_component = self.sim.config.social_sim.chance_of_interaction_extroversion_component_cap
         return extroversion_component
 
     def _get_openness_component_to_chance_of_social_interaction(self):
         """Return the effect of this person's openness on the chance of instigating social interaction."""
-        config = self.sim.config
         openness_component = self.personality.openness_to_experience
-        if openness_component < config.chance_of_interaction_openness_component_floor:
-            openness_component = config.chance_of_interaction_openness_component_floor
-        elif openness_component > config.chance_of_interaction_openness_component_cap:
-            openness_component = config.chance_of_interaction_openness_component_cap
+        if openness_component < self.sim.config.social_sim.chance_of_interaction_openness_component_floor:
+            openness_component = self.sim.config.social_sim.chance_of_interaction_openness_component_floor
+        elif openness_component > self.sim.config.social_sim.chance_of_interaction_openness_component_cap:
+            openness_component = self.sim.config.social_sim.chance_of_interaction_openness_component_cap
         return openness_component
 
     def _get_friendship_component_to_chance_of_social_interaction(self, other_person):
         """Return the effect of an existing friendship on the chance of instigating social interaction."""
-        config = self.sim.config
         friendship_component = 0.0
         if other_person in self.friends:
-            friendship_component += config.chance_of_interaction_friendship_component
+            friendship_component += self.sim.config.social_sim.chance_of_interaction_friendship_component
         if other_person is self.best_friend:
-            friendship_component += config.chance_of_interaction_best_friend_component
+            friendship_component += self.sim.config.social_sim.chance_of_interaction_best_friend_component
         return friendship_component
 
-    def grow_older(self):
+    def grow_older(self, year=None, retcon=False):
         """Check if it's this persons birth day; if it is, age them."""
-        config = self.sim.config
+        if year is None:
+            year = self.sim.current_date.year
+
         consider_leaving_town = False
-        self.age = age = self.sim.true_year - self.birth_year
+
+        self.age += 1
+
         # If you've just entered school age and your mother had been staying at
         # home to take care of you, she may now reenter the workforce
         try:
-            if age == config.age_children_start_going_to_school and self.mother and not self.mother.intending_to_work:
-                if not random.random() < config.chance_mother_of_young_children_stays_home(year=self.sim.year):
+            if self.age == self.sim.config.life_cycle.age_children_start_going_to_school \
+               and self.mother and not self.mother.intending_to_work:
+
+                if not random.random() < self.sim.config.life_cycle.chance_mother_of_young_children_stays_home(year=year):
                     self.mother.intending_to_work = True
+
         except AttributeError:
             # We're retconning, which means the mother doesn't even have the attribute 'intending_to_work'
             # set yet, which throws an error; because we're retconning, we don't even want to be
             # actively modeling whether she is in the workforce anyway
             pass
-        if age == config.age_people_start_working(year=self.sim.year):
+
+        if self.age == self.sim.config.life_cycle.age_people_start_working(year=year):
             self.in_the_workforce = True
             consider_leaving_town = True
-        if age == 18:
-            self.adult = True
+
+
         # If you're now old enough to be developing romantic feelings for other characters,
         # it's time to (potentially) reset your spark increments for all your relationships
-        if self.age == self.sim.config.age_characters_start_developing_romantic_feelings:
+        if self.age == self.sim.config.social_sim.age_characters_start_developing_romantic_feelings:
             for other_person in self.relationships:
                 self.relationships[other_person].reset_spark_increment()
+
         # If you haven't in a while (in the logarithmic sense, rather than absolute
         # sense), update all relationships you have to reflect the new age difference
         # between you and the respective other person
-        if age in (
+        if self.age in (
             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18,
             20, 23, 26, 29, 33, 37, 41, 45, 50, 55, 60,
             65, 70, 75, 80, 85, 90, 95, 100,
         ):
             for other_person in self.relationships:
                 self.relationships[other_person].update_spark_and_charge_increments_for_new_age_difference()
+
         # Potentially have your hair turn gray (or white, if it's already gray) -- TODO MAKE THIS HERITABLE
-        if age > config.age_when_people_start_graying:
-            if random.random() < config.chance_someones_hair_goes_gray_or_white:
+        if self.age > self.sim.config.life_cycle.age_when_people_start_graying:
+            if random.random() < self.sim.config.life_cycle.chance_someones_hair_goes_gray_or_white:
                 new_color_str = 'gray' if self.face.hair.color != 'gray' else 'white'
                 # Maintain the same face.Feature attributes as the original Feature had, but
                 # create a new Feature object with the updated string -- TODO is this still inheritance?
@@ -1927,8 +2212,8 @@ class Person:
                     exact_variant_inherited=exact_variant_inherited
                 )
         # Potentially go bald, if male -- TODO MAKE THIS HERITABLE
-        if self.male and age > config.age_when_men_start_balding:
-            if random.random() < config.chance_someones_loses_their_hair_some_year:
+        if self.male and self.age > self.sim.config.life_cycle.age_when_men_start_balding:
+            if random.random() < self.sim.config.life_cycle.chance_someones_loses_their_hair_some_year:
                 # Maintain the same face.Feature attributes as the original Feature had, but
                 # create a new Feature object with the updated string -- TODO is this still inheritance?
                 variant_id = self.face.hair.length.variant_id
@@ -1936,49 +2221,57 @@ class Person:
                 exact_variant_inherited = self.face.hair.length.exact_variant_inherited
                 self.face.hair.length = face.Feature(
                     value='bald', variant_id=variant_id, inherited_from=inherited_from,
-                    exact_variant_inherited=exact_variant_inherited
-                )
-        if consider_leaving_town and random.random() < config.chance_a_new_adult_decides_to_leave_town:
-            self.depart_town()
+                    exact_variant_inherited=exact_variant_inherited)
+
+        if not retcon \
+           and consider_leaving_town \
+           and random.random() < self.sim.config.basic.chance_a_new_adult_decides_to_leave_town:
+            self.depart_town(self.sim.current_date)
 
     def update_salience_of(self, entity, change):
         """Increment your salience value for entity by change."""
-        # TODO EXPLORE WHY SOME PEOPLE ARE INDEXING OTHERS WITH
-        # NEGATIVE SALIENCE VALUES -- the max() is duct tape right now
-        self.salience_of_other_people[entity] = (
-            max(0.0, self.salience_of_other_people.get(entity, 0.0) + change)
-        )
-
-    def connection_to_place(self):
-        pass
-
-    def connection_to_person(self):
-        pass
+        self.salience_of_other_people[entity] = \
+            max(self.salience_of_other_people.get(entity, 0.0) + change, 100)
 
     def likes(self, person):
         """Return whether this person likes the given person."""
-        config = self.sim.config
         if person not in self.relationships:
             return False
         else:
-            return self.relationships[person].charge > config.charge_threshold_for_liking_someone
+            return self.relationships[person].charge > self.sim.config.social_sim.charge_threshold_for_liking_someone
 
     def dislikes(self, person):
         """Return whether this person dislikes the given person."""
-        config = self.sim.config
         if person not in self.relationships:
             return False
         else:
-            return self.relationships[person].charge < config.charge_threshold_for_disliking_someone
+            return self.relationships[person].charge < self.sim.config.social_sim.charge_threshold_for_disliking_someone
 
     def hates(self, person):
         """Return whether this person hates the given person."""
-        config = self.sim.config
         if person not in self.relationships:
             return False
         else:
-            return self.relationships[person].charge < config.charge_threshold_for_hating_someone
+            return self.relationships[person].charge < self.sim.config.charge_threshold_for_hating_someone
 
+    def __str__(self):
+        """Return string representation."""
+        if self.present:
+            return "{}, {} years old".format(self.name, self.age)
+        elif self.departure:
+            return "{}, left town in {}".format(self.name, self.departure.year)
+        elif not self.alive:
+            return "{}, {}-{}".format(self.name, self.birth_year, self.death_year)
+        else:
+            return "{}, {} years old".format(self.name, self.age)
+
+    def __gt__(self, other):
+        """Greater than"""
+        return self.id > other.id
+
+    def __lt__(self, other):
+        """less than"""
+        return self.id < other.id
 
 class PersonExNihilo(Person):
     """A person who is generated from nothing, i.e., who has no parents.
@@ -1991,226 +2284,144 @@ class PersonExNihilo(Person):
     children) may be generated for a person of this class.
     """
 
-    def __init__(self, sim, job_opportunity_impetus, spouse_already_generated):
-        super().__init__(sim, birth=None)
-        # Potentially overwrite sex set by Person.__init__()
-        if spouse_already_generated:
-            self.male, self.female = self._override_sex(spouse=spouse_already_generated)
-            self.attracted_to_men, self.attracted_to_women = self._override_sexuality(spouse=spouse_already_generated)
-        elif job_opportunity_impetus:
+    def __init__(self, sim, job_opportunity_impetus=None, spouse=None):
+        super().__init__(sim, "", "", None, None, None, sim.current_date)
+
+        # Ensure this person is sexual compatible with their spouse
+        if spouse is not None:
+            self.sex = random.choice(spouse.attracted_to)
+            self.attracted_to = OrderedSet([spouse.sex])
+
+        elif job_opportunity_impetus is not None:
             # Make sure you have the appropriate sex for the job position you are coming
-            # to town to accept; if you don't, swap your sex and
-            if not self.sim.config.employable_as_a[job_opportunity_impetus](applicant=self):
-                self.male, self.female = self.female, self.male
-                self.attracted_to_men, self.attracted_to_women = (False, True) if self.male else (True, False)
-        # Overwrite birth year set by Person.__init__()
-        job_level = self.sim.config.job_levels[job_opportunity_impetus]
-        self.birth_year = self._init_birth_year(job_level=job_level)
-        # Set age given birth year that was attributed
-        self.age = self.sim.true_year - self.birth_year
-        self.adult = True if self.age >= 18 else False
-        self.in_the_workforce = (
-            True if self.age >= self.sim.config.age_people_start_working(year=self.sim.true_year) else False
-        )
-        # Determine a random birthday and add it to the sim's listing of all characters' birthdays
-        self.birthday = self._get_random_birthday()
-        try:
-            sim.birthdays[self.birthday].add(self)
-        except KeyError:
-            sim.birthdays[self.birthday] = {self}
+            # to town to accept; if you don't, swap your sex
+            if not self.sim.config.business.employable_as_a[job_opportunity_impetus](applicant=self):
+                self.sex = "female" if self.male else "male"
+
+        # Determine a random birthday and overwrite birth year set by Person.__init__()
+        job_level = self.sim.config.business.job_levels[job_opportunity_impetus]
+
+        birth_date = PersonExNihilo.generate_birth_date(sim.current_date, job_level, sim.config)
+        self.birth_year = birth_date.year
+        self.birthday = (birth_date.month, birth_date.day)
+        self.age = sim.current_date.year - birth_date.year
+
+        # Check if this person is eligible to work
+        self.in_the_workforce = self.age >= self.sim.config.life_cycle.age_people_start_working(self.sim.current_date.year)
+
         # Since they don't have a parent to name them, generate a name for this person (if
         # they get married outside the town, this will still potentially change, as normal)
-        self.first_name, self.middle_name, self.last_name, self.suffix = (
-            self._init_name()
-        )
+        self.first_name, self.middle_name, self.last_name = self.generate_name(self.birth_year)
         self.maiden_name = self.last_name
-        self.named_for = None
+
         # If this person is being hired for a high job level, retcon that they have
         # a college education -- do the same for the town founder
         if (job_opportunity_impetus and
-                job_opportunity_impetus in self.sim.config.occupations_requiring_college_degree):
+                job_opportunity_impetus in self.sim.config.business.occupations_requiring_college_degree):
             self.college_graduate = True
-        # Potentially generate and retcon a family that this person will have had prior
-        # to moving into the town; if the person is moving here to be a farmer, force that
-        # a family be retconned (mostly to ensure that at least some people in the present
-        # day will have roots in the town going back to its early foundations when it
-        # comprised a handful of farms)
-        self._init_potentially_retcon_family(
-            spouse_already_generated=spouse_already_generated,
-            job_opportunity_impetus=job_opportunity_impetus
-        )
 
-    def _get_random_birthday(self):
-        """Return a randomly chosen birthday.
+        self.money = sim.config.misc_character.amount_of_money_generated_people_from_outside_town_start_with
 
-        Note: In a rare example of me not oversimulating, this method wrongly assumes a
-        uniform distribution of birthdays and will never return a February 29 birthday
-        (due to the attendant trouble of having to then make sure the person was indeed
-        born on a leap year).
+    @staticmethod
+    def create_person(sim, job_opportunity_impetus=None, spouse=None):
+        """Create PersonExNihilo and adds them to the town
+
+            Also potentially generate and retcon a family that this person will have had prior
+            to moving into the town; if the person is moving here to be a farmer, force that
+            a family be retconned (mostly to ensure that at least some people in the present
+            day will have roots in the town going back to its early foundations when it
+            comprised a handful of farms)
         """
-        birthdate = self.sim.get_random_day_of_year(year=self.birth_year)
-        #month, day, _ = self.sim.get_random_day_of_year(year=self.birth_year)
-        #birthday = (month, day)
-        #return birthday
-        return (birthdate.month, birthdate.day)
+        person = PersonExNihilo(sim, job_opportunity_impetus=job_opportunity_impetus, spouse=spouse)
+        person._init_potentially_retcon_family(spouse, job_opportunity_impetus)
+        sim.register_birthday(person.birthday, person)
+        return person
 
-    @staticmethod
-    def _override_sex(spouse):
-        """Assign the sex of this person to ensure compatibility with their spouse.."""
-        if spouse.attracted_to_men:
-            male, female = True, False
-        else:
-            male, female = False, True
-        return male, female
-
-    @staticmethod
-    def _override_sexuality(spouse):
-        """Assign the sex of this person to ensure compatibility with their spouse.."""
-        if spouse.male:
-            attracted_to_men, attracted_to_women = True, False
-        else:
-            attracted_to_men, attracted_to_women = False, True
-        return attracted_to_men, attracted_to_women
-
-    def _init_name(self):
+    def generate_name(self, birth_year):
         """Generate a name for a primordial person who has no parents."""
         if self.male:
-            first_name_rep = Names.a_masculine_name(year=self.birth_year)
-            middle_name_rep = Names.a_masculine_name(year=self.birth_year)
+            first_name_rep = Names.a_masculine_name(birth_year)
+            middle_name_rep = Names.a_masculine_name(birth_year)
         else:
-            first_name_rep = Names.a_feminine_name(year=self.birth_year)
-            middle_name_rep = Names.a_feminine_name(year=self.birth_year)
-        first_name = Name(value=first_name_rep, progenitor=self, conceived_by=(), derived_from=())
-        middle_name = Name(value=middle_name_rep, progenitor=self, conceived_by=(), derived_from=())
-        last_name = Name(value=Names.any_surname(), progenitor=self, conceived_by=(), derived_from=())
-        suffix = ''
-        return first_name, middle_name, last_name, suffix
+            first_name_rep = Names.a_feminine_name(birth_year)
+            middle_name_rep = Names.a_feminine_name(birth_year)
 
-    def _init_birth_year_of_the_founder(self):
-        """Generate a birth year for the founder of the town."""
-        config = self.sim.config
-        age_at_current_year_of_sim = config.age_of_town_founder
-        birth_year = self.sim.true_year - age_at_current_year_of_sim
-        return birth_year
+        first_name = Name(value=first_name_rep, progenitor=self,
+                          conceived_by=(), derived_from=())
+        middle_name = Name(value=middle_name_rep,
+                           progenitor=self, conceived_by=(), derived_from=())
+        last_name = Name(value=Names.any_surname(),
+                         progenitor=self, conceived_by=(), derived_from=())
 
-    def _init_birth_year(self, job_level):
+        return (first_name, middle_name, last_name)
+
+    @staticmethod
+    def generate_birth_date(current_date, job_level, config):
         """Generate a birth year for this person that is consistent with the job level they/spouse will get."""
-        config = self.sim.config
-        age_at_current_year_of_sim = config.function_to_determine_person_ex_nihilo_age_given_job_level(
-            job_level=job_level
-        )
-        birth_year = self.sim.true_year - age_at_current_year_of_sim
-        return birth_year
+        age = config.misc_character.person_ex_nihilo_age_given_job_level(job_level)
+        birth_year = current_date.year - age
+        birth_date = get_random_day_of_year(birth_year)
+        return birth_date
 
-    def _init_familial_attributes(self):
-        """Do nothing because a PersonExNihilo has no family at the time of being generated.."""
-        pass
-
-    def _init_update_familial_attributes_of_family_members(self):
-        """Do nothing because a PersonExNihilo has no family at the time of being generated.."""
-        pass
-
-    def _init_money(self):
-        """Determine how much money this person has to start with."""
-        return self.sim.config.amount_of_money_generated_people_from_outside_town_start_with
-
-    def _init_potentially_retcon_family(self, spouse_already_generated, job_opportunity_impetus):
+    def _init_potentially_retcon_family(self, spouse, job_opportunity_impetus):
         """Potentially generate and retcon a family that this person will have had prior
         to entering into the simulation.
         """
-        if not spouse_already_generated:
-            chance_of_having_family = (
-                self.sim.config.function_to_determine_chance_person_ex_nihilo_starts_with_family(
-                    town_pop=self.sim.town.population
-                )
-            )
+        if spouse is None:
+            chance_of_having_family = \
+                self.sim.config.misc_character.chance_person_ex_nihilo_starts_with_family(
+                    self.sim.town.population)
+
             if random.random() < chance_of_having_family or job_opportunity_impetus.__name__ == 'Farmer':
-                self._init_generate_family(job_opportunity_impetus=job_opportunity_impetus)
+                self._generate_family(job_opportunity_impetus)
 
-    def _init_generate_family(self, job_opportunity_impetus):
+    def _generate_family(self, job_opportunity_impetus):
         """Generate and retcon a family that this person will take with them into the town."""
-        spouse = PersonExNihilo(
-            sim=self.sim, job_opportunity_impetus=job_opportunity_impetus, spouse_already_generated=self
-        )
-        self._init_retcon_marriage(spouse=spouse)
-        self._init_retcon_births_of_children()
-        self.sim.year = self.sim.true_year
+        spouse = PersonExNihilo.create_person(self.sim, job_opportunity_impetus=job_opportunity_impetus, spouse=self)
+        self._retcon_marriage(spouse)
+        self._retcon_births_of_children()
 
-    def _init_retcon_marriage(self, spouse):
+    def _retcon_marriage(self, spouse):
         """Jump back in time to instantiate a marriage that began outside the town."""
-        config = self.sim.config
         # Change actual sim year to marriage year, instantiate a Marriage object
-        marriage_date = self.birth_year + (
-            random.normalvariate(
-                config.person_ex_nihilo_age_at_marriage_mean, config.person_ex_nihilo_age_at_marriage_sd
-            )
-        )
-        if (
-            # Make sure spouses aren't too young for marriage and that marriage isn't slated
-            # to happen after the town has been founded
-            marriage_date - self.birth_year < config.person_ex_nihilo_age_at_marriage_floor or
-            marriage_date - spouse.birth_year < config.person_ex_nihilo_age_at_marriage_floor or
-            marriage_date >= self.sim.true_year
-        ):
-            # If so, don't bother regenerating -- just set marriage year to last year and move on
-            marriage_date = self.sim.true_year - 1
-        self.sim.year = int(round(marriage_date))
-        self.marry(spouse)
+        marriage_age_mean = self.sim.config.misc_character.person_ex_nihilo_age_at_marriage_mean
+        marriage_age_sd = self.sim.config.misc_character.person_ex_nihilo_age_at_marriage_sd
+        marriage_age_floor =  self.sim.config.misc_character.person_ex_nihilo_age_at_marriage_floor
 
-    def _init_retcon_births_of_children(self):
+        marriage_year = round(self.birth_year + random.normalvariate(marriage_age_mean, marriage_age_sd))
+
+        # Make sure spouses aren't too young for marriage and that marriage isn't slated
+        # to happen after the town has been founded
+        if (marriage_year - self.birth_year < marriage_age_floor
+            or marriage_year - spouse.birth_year < marriage_age_floor
+            or marriage_year >= self.sim.current_date.year):
+            # If so, don't bother regenerating -- just set marriage year to last year and move on
+            marriage_year = self.sim.current_date.year - 1
+
+        self.marry(spouse, get_random_day_of_year(marriage_year))
+
+    def _retcon_births_of_children(self):
         """Simulate from marriage to the present day for children potentially being born."""
-        config = self.sim.config
         # Simulate sex (and thus potentially birth) in marriage thus far
-        for year in range(self.marriage.year, self.sim.true_year+1):
+        for year in range(self.marriage.year, self.sim.current_date.year):
+
+            for k in self.kids:
+                k.grow_older(year=year, retcon=True)
+
+            # Get a random day this year
+            random_day = get_random_day_of_year(year)
+
             # If someone is pregnant and due this year, have them give birth
             if self.pregnant or self.spouse.pregnant:
                 pregnant_one = self if self.pregnant else self.spouse
                 if pregnant_one.conception_year < year:
-                    pregnant_one.give_birth()
-            self.sim.year = year
-            chance_they_are_trying_to_conceive_this_year = (
-                config.function_to_determine_chance_married_couple_are_trying_to_conceive(
-                    n_kids=len(self.marriage.children_produced)
-                )
-            )
-            if random.random() < chance_they_are_trying_to_conceive_this_year:
-                self.have_sex(partner=self.spouse, protection=False)
-            else:
-                self.have_sex(partner=self.spouse, protection=True)
+                    pregnant_one.give_birth(random_day)
 
-    def move_into_the_town(self, hiring_that_instigated_move):
-        """Move into the town in which simplay takes place."""
-        self.town = self.sim.town
-        self.town.residents.add(self)
-        new_home = self.secure_home()
-        if not new_home:
-            someone_elses_home = random.choice(list(self.town.dwelling_places))
-            self.move(new_home=someone_elses_home, reason=hiring_that_instigated_move)
-        if new_home:
-            self.move(new_home=new_home, reason=hiring_that_instigated_move)
-        else:
-            # Have the closest apartment complex to downtown expand to add
-            # another unit for this person to move into
-            apartment_complexes_in_town = [
-                # Check if they have units first -- have had the weird case of someone
-                # trying to build a complex right downtown and then not being able to
-                # expand that very complex itself to move into it, because it currently
-                # has no units, and thus no unit number to give the expansion unit
-                ac for ac in self.town.businesses_of_type('ApartmentComplex') if ac.units
-                ]
-            if len(apartment_complexes_in_town) > 3:
-                complexes_closest_to_downtown = heapq.nlargest(
-                    3, apartment_complexes_in_town,
-                    key=lambda ac: self.town.distance_between(ac.lot, self.town.downtown)
-                )
-                complex_that_will_expand = random.choice(complexes_closest_to_downtown)
+            chance_they_are_trying_to_conceive_this_year = \
+                self.sim.config.marriage.chance_married_couple_are_trying_to_conceive(
+                    n_kids=len(self.marriage.children_produced))
+
+            if random.random() < chance_they_are_trying_to_conceive_this_year:
+                self.have_sex(partner=self.spouse, protection=False, date=random_day)
             else:
-                complex_that_will_expand = min(
-                    apartment_complexes_in_town,
-                    key=lambda ac: self.town.distance_between(ac.lot, self.town.downtown)
-                )
-            complex_that_will_expand.expand()  # This will add two new units to this complex
-            self.move(
-                new_home=complex_that_will_expand.units[-2],
-                reason=hiring_that_instigated_move
-            )
+                self.have_sex(partner=self.spouse, protection=True, date=random_day)

@@ -19,31 +19,31 @@ class Mind:
     def _init_memory(self):
         """Determine a person's base memory capability, given their parents'."""
         config = self.person.sim.config
-        if random.random() < config.memory_heritability:
-            takes_after = random.choice([self.person.mother, self.person.father])
-            memory = random.normalvariate(takes_after.mind.memory, config.memory_heritability_sd)
+        if random.random() < config.misc_character.memory_heritability:
+            takes_after = random.choice([self.person.biological_mother, self.person.biological_father])
+            memory = random.normalvariate(takes_after.mind.memory, config.misc_character.memory_heritability_sd)
         else:
             takes_after = None
-            memory = random.normalvariate(config.memory_mean, config.memory_sd)
+            memory = random.normalvariate(config.misc_character.memory_mean, config.misc_character.memory_sd)
         if self.person.male:  # Men have slightly worse memory (studies show)
-            memory -= config.memory_sex_diff
-        if memory > config.memory_cap:
-            memory = config.memory_cap
-        elif memory < config.memory_floor_at_birth:
-            memory = config.memory_floor_at_birth
+            memory -= config.misc_character.memory_sex_diff
+        if memory > config.misc_character.memory_cap:
+            memory = config.misc_character.memory_cap
+        elif memory < config.misc_character.memory_floor_at_birth:
+            memory = config.misc_character.memory_floor_at_birth
         feature_object = Feature(value=memory, inherited_from=takes_after)
         return feature_object
 
     def _init_ex_nihilo_memory(self):
         """Determine this person's base memory capability."""
         config = self.person.sim.config
-        memory = random.normalvariate(config.memory_mean, config.memory_sd)
+        memory = random.normalvariate(config.misc_character.memory_mean, config.misc_character.memory_sd)
         if self.person.male:  # Men have slightly worse memory (studies show)
-            memory -= config.memory_sex_diff
-        if memory > config.memory_cap:
-            memory = config.memory_cap
-        elif memory < config.memory_floor:
-            memory = config.memory_floor
+            memory -= config.misc_character.memory_sex_diff
+        if memory > config.misc_character.memory_cap:
+            memory = config.misc_character.memory_cap
+        elif memory < config.misc_character.memory_floor:
+            memory = config.misc_character.memory_floor
         feature_object = Feature(value=memory, inherited_from=None)
         return feature_object
 

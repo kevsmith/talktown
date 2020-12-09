@@ -13,15 +13,15 @@ class Relationship:
         self.preceded_by = preceded_by
         self.succeeded_by = None
         self.where_they_met = owner.location
-        self.when_they_met = owner.sim.date
+        self.when_they_met = owner.sim.get_date_str()
         self.first_met_str = '{date} at {location}'.format(
-            date=owner.sim.year, location=owner.location.name
+            date=owner.sim.current_date.year, location=owner.location.name
         )
         self.where_they_last_met = owner.location  # These change as appropriate
-        self.when_they_last_met = owner.sim.date
+        self.when_they_last_met = owner.sim.get_date_str()
         self.last_met_str_base = (
-            '{date} at {location}'.format(date=owner.sim.year, location=owner.location.name),
-            self.owner.sim.ordinal_date
+            '{date} at {location}'.format(date=owner.sim.current_date.year, location=owner.location.name),
+            self.owner.sim.current_date.toordinal()
         )
         self.total_interactions = 0
         # Set this as the primary relationship owner has with subject
@@ -42,10 +42,10 @@ class Relationship:
             self.raw_spark_increment = float(preceded_by.raw_spark_increment)
             self.raw_spark = preceded_by.spark
         # Normalize charge and spark values to -100 to 100 scales
-        self.charge = self.owner.sim.config.function_to_normalize_raw_charge(
+        self.charge = self.owner.sim.config.social_sim.normalize_raw_charge(
             n_simulated_timesteps=self.owner.sim.n_simulated_timesteps, raw_charge=self.raw_charge
         )
-        self.spark = self.owner.sim.config.function_to_normalize_raw_spark(
+        self.spark = self.owner.sim.config.social_sim.normalize_raw_spark(
             n_simulated_timesteps=self.owner.sim.n_simulated_timesteps, raw_spark=self.raw_spark
         )
         # Prepare variables that specify the effects that age and job-level differences
@@ -112,12 +112,12 @@ class Relationship:
         config = self.owner.sim.config
         charge_increment = (
             self.compatibility +
-            self.owner.personality.extroversion * config.owner_extroversion_boost_to_charge_multiplier +
-            self.subject.personality.agreeableness * config.subject_agreeableness_boost_to_charge_multiplier
+            self.owner.personality.extroversion * config.social_sim.owner_extroversion_boost_to_charge_multiplier +
+            self.subject.personality.agreeableness * config.social_sim.subject_agreeableness_boost_to_charge_multiplier
         )
         # Reduce charge intensity for sex difference (source [7])
         if self.owner.male != self.subject.male:
-            charge_increment *= config.charge_intensity_reduction_due_to_sex_difference
+            charge_increment *= config.social_sim.charge_intensity_reduction_due_to_sex_difference
         return charge_increment
 
     def _init_determine_initial_spark_increment(self):
@@ -143,7 +143,7 @@ class Relationship:
             initial_spark_increment = 0
         elif self.owner.adult and not self.subject.adult:
             initial_spark_increment = 0
-        elif self.owner.age < self.owner.sim.config.age_characters_start_developing_romantic_feelings:
+        elif self.owner.age < self.owner.sim.config.social_sim.age_characters_start_developing_romantic_feelings:
             initial_spark_increment = 0
         else:
             # Affect it according to personalities using source [5]
@@ -161,19 +161,19 @@ class Relationship:
         sex_key = 'm' if self.owner.male else 'f'
         effect_from_own_personality = 0
         effect_from_own_personality += (
-            self.subject.personality.openness_to_experience * config.openness_boost_to_spark_multiplier[sex_key]
+            self.subject.personality.openness_to_experience * config.social_sim.openness_boost_to_spark_multiplier[sex_key]
         )
         effect_from_own_personality += (
-            self.subject.personality.conscientiousness * config.conscientiousness_boost_to_spark_multiplier[sex_key]
+            self.subject.personality.conscientiousness * config.social_sim.conscientiousness_boost_to_spark_multiplier[sex_key]
         )
         effect_from_own_personality += (
-            self.subject.personality.extroversion * config.extroversion_boost_to_spark_multiplier[sex_key]
+            self.subject.personality.extroversion * config.social_sim.extroversion_boost_to_spark_multiplier[sex_key]
         )
         effect_from_own_personality += (
-            self.subject.personality.agreeableness * config.agreeableness_boost_to_spark_multiplier[sex_key]
+            self.subject.personality.agreeableness * config.social_sim.agreeableness_boost_to_spark_multiplier[sex_key]
         )
         effect_from_own_personality += (
-            self.subject.personality.neuroticism * config.neuroticism_boost_to_spark_multiplier[sex_key]
+            self.subject.personality.neuroticism * config.social_sim.neuroticism_boost_to_spark_multiplier[sex_key]
         )
         return effect_from_own_personality
 
@@ -186,19 +186,19 @@ class Relationship:
         sex_key = 'm' if self.owner.male else 'f'
         effect_from_acquaintance_personality = 0
         effect_from_acquaintance_personality += (
-            self.subject.personality.openness_to_experience * config.openness_boost_to_spark_multiplier[sex_key]
+            self.subject.personality.openness_to_experience * config.social_sim.openness_boost_to_spark_multiplier[sex_key]
         )
         effect_from_acquaintance_personality += (
-            self.subject.personality.conscientiousness * config.conscientiousness_boost_to_spark_multiplier[sex_key]
+            self.subject.personality.conscientiousness * config.social_sim.conscientiousness_boost_to_spark_multiplier[sex_key]
         )
         effect_from_acquaintance_personality += (
-            self.subject.personality.extroversion * config.extroversion_boost_to_spark_multiplier[sex_key]
+            self.subject.personality.extroversion * config.social_sim.extroversion_boost_to_spark_multiplier[sex_key]
         )
         effect_from_acquaintance_personality += (
-            self.subject.personality.agreeableness * config.agreeableness_boost_to_spark_multiplier[sex_key]
+            self.subject.personality.agreeableness * config.social_sim.agreeableness_boost_to_spark_multiplier[sex_key]
         )
         effect_from_acquaintance_personality += (
-            self.subject.personality.neuroticism * config.neuroticism_boost_to_spark_multiplier[sex_key]
+            self.subject.personality.neuroticism * config.social_sim.neuroticism_boost_to_spark_multiplier[sex_key]
         )
         return effect_from_acquaintance_personality
 
@@ -223,13 +223,13 @@ class Relationship:
         config = self.owner.sim.config
         # Set new age-difference charge effect
         self.age_difference_effect_on_charge_increment = (
-            config.function_to_determine_how_age_difference_reduces_charge_intensity(
+            config.social_sim.determine_how_age_difference_reduces_charge_intensity(
                 age1=self.owner.age, age2=self.subject.age
             )
         )
         # Set new age-difference spark effect
         self.age_difference_effect_on_spark_increment = (
-            config.function_to_determine_how_age_difference_reduces_spark_increment(
+            config.social_sim.determine_how_age_difference_reduces_spark_increment(
                 age1=self.owner.age, age2=self.subject.age
             )
         )
@@ -258,12 +258,12 @@ class Relationship:
         else:
             subject_job_level = 0.1
         self.job_level_difference_effect_on_charge_increment = (
-            config.function_to_determine_how_job_level_difference_reduces_charge_intensity(
+            config.social_sim.determine_how_job_level_difference_reduces_charge_intensity(
                 job_level1=owner_job_level, job_level2=subject_job_level
             )
         )
         self.job_level_difference_effect_on_spark_increment = (
-            config.function_to_determine_how_job_level_difference_reduces_spark_increment(
+            config.social_sim.determine_how_job_level_difference_reduces_spark_increment(
                 job_level1=owner_job_level, job_level2=subject_job_level
             )
         )
@@ -277,13 +277,13 @@ class Relationship:
         # Update data
         self.total_interactions += 1
         self.where_they_last_met = owner.location  # Changes as appropriate
-        self.when_they_last_met = owner.sim.date
+        self.when_they_last_met = owner.sim.get_date_str()
         self.last_met_str_base = (
-            '{date} at {location}'.format(date=owner.sim.year, location=owner.location.name),
-            self.owner.sim.ordinal_date
+            '{date} at {location}'.format(date=owner.sim.current_date.year, location=owner.location.name),
+            self.owner.sim.current_date.toordinal()
         )
         # Increment salience
-        self.owner.salience_of_other_people[self.subject] += config.salience_increment_for_social_interaction
+        self.owner.salience_of_other_people[self.subject] += config.salience.salience_increment_for_social_interaction
         # Progress raw_charge, possibly leading to a Friendship or Enmity
         change_to_charge = (
             self.raw_charge_increment * self.age_difference_effect_on_charge_increment *
@@ -292,15 +292,15 @@ class Relationship:
         change_to_charge *= missing_days_to_account_for
         self.raw_charge += change_to_charge
         # Normalize charge value to a -100 to 100 scale
-        self.charge = self.owner.sim.config.function_to_normalize_raw_charge(
+        self.charge = self.owner.sim.config.social_sim.normalize_raw_charge(
             n_simulated_timesteps=self.owner.sim.n_simulated_timesteps, raw_charge=self.raw_charge
         )
-        if not isinstance(self, Friendship) and self.charge > config.charge_threshold_friendship:
+        if not isinstance(self, Friendship) and self.charge > config.social_sim.charge_threshold_friendship:
             Friendship(owner=owner, subject=subject, preceded_by=self)
-        elif not isinstance(self, Enmity) and self.charge < config.charge_threshold_enmity:
+        elif not isinstance(self, Enmity) and self.charge < config.social_sim.charge_threshold_enmity:
             Enmity(owner=owner, subject=subject, preceded_by=self)
         # Progress spark, possibly leading to a
-        self.raw_spark_increment *= config.spark_decay_rate
+        self.raw_spark_increment *= config.social_sim.spark_decay_rate
         change_to_spark = (
             self.raw_spark_increment * self.age_difference_effect_on_spark_increment *
             self.job_level_difference_effect_on_spark_increment
@@ -308,7 +308,7 @@ class Relationship:
         change_to_spark *= missing_days_to_account_for
         self.raw_spark += change_to_spark
         # Normalize spark value to a -100 to 100 scale
-        self.spark = self.owner.sim.config.function_to_normalize_raw_spark(
+        self.spark = self.owner.sim.config.social_sim.normalize_raw_spark(
             n_simulated_timesteps=self.owner.sim.n_simulated_timesteps, raw_spark=self.raw_spark
         )
         # Check if subject is now owner's new best friend, worst enemy, or love interest; if
@@ -329,7 +329,7 @@ class Relationship:
         charge, spark = self.raw_charge, self.raw_spark
         # Potentially attribute new best friend
         if charge > owner.charge_of_best_friend and subject is not owner.best_friend:
-            salience_change = config.salience_increment_from_relationship_change['best friend']
+            salience_change = config.salience.salience_increment_from_relationship_change['best friend']
             old_best_friend = owner.best_friend
             if old_best_friend:
                 owner.update_salience_of(entity=old_best_friend, change=-salience_change)  # Notice the minus sign
@@ -338,13 +338,13 @@ class Relationship:
             owner.charge_of_best_friend = charge
         # Potentially remove now former best friend if charge dropped below 0
         elif subject is owner.best_friend and charge < 0.0:
-            salience_change = config.salience_increment_from_relationship_change['best friend']
+            salience_change = config.salience.salience_increment_from_relationship_change['best friend']
             owner.update_salience_of(entity=subject, change=-salience_change)
             owner.best_friend = None
             owner.charge_of_best_friend = 0.0
         # Potentially attribute new worst enemy
         if self.raw_charge < owner.charge_of_worst_enemy and subject is not owner.worst_enemy:
-            salience_change = config.salience_increment_from_relationship_change['worst enemy']
+            salience_change = config.salience.salience_increment_from_relationship_change['worst enemy']
             old_worst_enemy = owner.worst_enemy
             if old_worst_enemy:
                 owner.update_salience_of(entity=old_worst_enemy, change=-salience_change)
@@ -353,13 +353,13 @@ class Relationship:
             owner.charge_of_worst_enemy = self.raw_charge
         # Potentially remove now former worst enemy if charge climbed above 0
         elif subject is owner.worst_enemy and charge > 0.0:
-            salience_change = config.salience_increment_from_relationship_change['worst_enemy']
+            salience_change = config.salience.salience_increment_from_relationship_change['worst_enemy']
             owner.update_salience_of(entity=subject, change=-salience_change)
             owner.worst_enemy = None
             owner.charge_of_worst_enemy = 0.0
         # Potentially attribute new love interest
         if 0 < self.raw_spark > owner.spark_of_love_interest and subject is not owner.love_interest:
-            salience_change = config.salience_increment_from_relationship_change['love interest']
+            salience_change = config.salience.salience_increment_from_relationship_change['love interest']
             old_love_interest = owner.love_interest
             if old_love_interest:
                 owner.update_salience_of(entity=old_love_interest, change=-salience_change)
@@ -368,7 +368,7 @@ class Relationship:
             owner.spark_of_love_interest = self.raw_spark
         # Potentially remove now former love interest if spark dropped below 0
         elif subject is owner.love_interest and spark < 0.0:
-            salience_change = config.salience_increment_from_relationship_change['love interest']
+            salience_change = config.salience.salience_increment_from_relationship_change['love interest']
             owner.update_salience_of(entity=subject, change=-salience_change)
             owner.love_interest = None
             owner.spark_of_love_interest = 0.0
@@ -378,7 +378,7 @@ class Relationship:
         """Return a string representing the last time these two met."""
         base_str, ordinal_date_they_last_met = self.last_met_str_base
         return "{} ({} days ago)".format(
-            base_str, self.owner.sim.ordinal_date-ordinal_date_they_last_met
+            base_str, self.owner.sim.current_date.toordinal()-ordinal_date_they_last_met
         )
 
     def outline(self):
@@ -411,7 +411,7 @@ class Acquaintance(Relationship):
         # Update the salience value owner has for subject (not vice versa, because relationships
         # are unidirectional)
         owner.update_salience_of(
-            subject, change=owner.sim.config.salience_increment_from_relationship_change['acquaintance']
+            subject, change=owner.sim.config.salience.salience_increment_from_relationship_change['acquaintance']
         )
 
 
@@ -431,7 +431,7 @@ class Enmity(Relationship):
         # Update the salience value owner has for subject (not vice versa, because relationships
         # are unidirectional)
         owner.update_salience_of(
-            subject, change=owner.sim.config.salience_increment_from_relationship_change['enemy']
+            subject, change=owner.sim.config.salience.salience_increment_from_relationship_change['enemy']
         )
 
 
@@ -451,5 +451,5 @@ class Friendship(Relationship):
         # Update the salience value owner has for subject (not vice versa, because relationships
         # are unidirectional)
         owner.update_salience_of(
-            subject, change=owner.sim.config.salience_increment_from_relationship_change['friend']
+            subject, change=owner.sim.config.salience.salience_increment_from_relationship_change['friend']
         )

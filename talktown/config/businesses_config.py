@@ -1,6 +1,6 @@
 from .. import business
 from .. import occupation
-
+from ordered_set import OrderedSet
 
 class BusinessesConfig:
     """Configuration parameters related to businesses."""
@@ -610,9 +610,9 @@ class BusinessesConfig:
         },
     }
     # Occupations for which a college degree is required
-    occupations_requiring_college_degree = {
+    occupations_requiring_college_degree = OrderedSet([
         occupation.Doctor, occupation.Architect, occupation.Optometrist, occupation.PlasticSurgeon, occupation.Lawyer, occupation.Professor, occupation.Pharmacist, occupation.Dentist
-    }
+    ])
     # Job levels of various occupations (indexed by their class names)
     job_levels = {
         None: 0,  # Unemployed
@@ -696,116 +696,190 @@ class BusinessesConfig:
         occupation.Owner: 5,
         occupation.Mayor: 5,
     }
+
+
+    class_to_company_name_component = {
+            business.ApartmentComplex: 'Apartments',
+            business.Bank: 'Bank',
+            business.Barbershop: 'Barbershop',
+            business.BusDepot: 'Bus Depot',
+            business.CityHall: 'City Hall',
+            business.ConstructionFirm: 'Construction',
+            business.DayCare: 'Day Care',
+            business.OptometryClinic: 'Optometry',
+            business.FireStation: 'Fire Dept.',
+            business.Hospital: 'Hospital',
+            business.Hotel: 'Hotel',
+            business.LawFirm: 'Law Offices of',
+            business.PlasticSurgeryClinic: 'Cosmetic Surgery Clinic',
+            business.PoliceStation: 'Police Dept.',
+            business.RealtyFirm: 'Realty',
+            business.Restaurant: 'Restaurant',
+            business.School: 'K-12 School',
+            business.Supermarket: 'Grocers',
+            business.TattooParlor: 'Tattoo',
+            business.TaxiDepot: 'Taxi',
+            business.University: 'University',
+            business.Cemetery: 'Cemetery',
+            business.Park: 'Park',
+            business.Bakery: 'Baking Co.',
+            business.BlacksmithShop: 'Blacksmith Shop',
+            business.Brewery: 'Brewery',
+            business.ButcherShop: 'Butcher Shop',
+            business.CandyStore: 'Candy Store',
+            business.CarpentryCompany: 'Carpentry',
+            business.ClothingStore: 'Clothing Co.',
+            business.CoalMine: 'Coal Mine',
+            business.Dairy: 'Dairy',
+            business.Deli: 'Delicatessen',
+            business.DentistOffice: 'Dentistry',
+            business.DepartmentStore: 'Department Store',
+            business.Diner: 'Diner',
+            business.Distillery: 'Distillery',
+            business.DrugStore: 'Drug Store',
+            business.Farm: 'family farm',
+            business.Foundry: 'Foundry',
+            business.FurnitureStore: 'Furniture Co.',
+            business.GeneralStore: 'General Store',
+            business.GroceryStore: 'Groceries',
+            business.HardwareStore: 'Hardware Co.',
+            business.Inn: 'Inn',
+            business.InsuranceCompany: 'Insurance Co.',
+            business.JeweleryShop: 'Jewelry',
+            business.PaintingCompany: 'Painting',
+            business.Pharmacy: 'Pharmacy',
+            business.PlumbingCompany: 'Plumbing Co.',
+            business.Quarry: 'Rock Quarry',
+            business.ShoemakerShop: 'Shoes',
+            business.TailorShop: 'Tailoring',
+            business.Tavern: 'Tavern',
+        }
+
+    classes_that_get_special_names = set([
+        business.CityHall,
+        business.FireStation,
+        business.Hospital,
+        business.PoliceStation,
+        business.School,
+        business.Cemetery,
+        business.LawFirm,
+        business.Bar,
+        business.Restaurant,
+        business.University,
+        business.Park,
+        business.Farm
+    ])
+
     # Preconditions to various occupations that enforce historical accuracy with
     # regard to gender and occupation (to preclude anachronisms, which of course
     # may not be an issue in many projects)
     employable_as_a = {
         occupation.Apprentice: lambda applicant: applicant.male,
-        occupation.Cashier: lambda applicant: applicant.male if applicant.sim.year < 1917 else True,
-        occupation.Janitor: lambda applicant: applicant.male if applicant.sim.year < 1966 else True,
-        occupation.Builder: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Cashier: lambda applicant: applicant.male if applicant.sim.current_date.year < 1917 else True,
+        occupation.Janitor: lambda applicant: applicant.male if applicant.sim.current_date.year < 1966 else True,
+        occupation.Builder: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
         occupation.HotelMaid: lambda applicant: applicant.female,
-        occupation.Waiter: lambda applicant: applicant.male if applicant.sim.year < 1917 else True,
+        occupation.Waiter: lambda applicant: applicant.male if applicant.sim.current_date.year < 1917 else True,
         occupation.Secretary: lambda applicant: applicant.female,
         occupation.Laborer: lambda applicant: applicant.male,
-        occupation.Groundskeeper: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
-        occupation.Whitewasher: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
-        occupation.Bottler: lambda applicant: applicant.male if applicant.sim.year < 1943 else True,
+        occupation.Groundskeeper: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
+        occupation.Whitewasher: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
+        occupation.Bottler: lambda applicant: applicant.male if applicant.sim.current_date.year < 1943 else True,
         occupation.Bricklayer: lambda applicant: applicant.male,
-        occupation.Cook: lambda applicant: applicant.male if applicant.sim.year < 1966 else True,
-        occupation.Dishwasher: lambda applicant: applicant.male if applicant.sim.year < 1966 else True,
-        occupation.Busboy: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
-        occupation.Stocker: lambda applicant: applicant.male if applicant.sim.year < 1943 else True,
+        occupation.Cook: lambda applicant: applicant.male if applicant.sim.current_date.year < 1966 else True,
+        occupation.Dishwasher: lambda applicant: applicant.male if applicant.sim.current_date.year < 1966 else True,
+        occupation.Busboy: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
+        occupation.Stocker: lambda applicant: applicant.male if applicant.sim.current_date.year < 1943 else True,
         occupation.Seamstress: lambda applicant: applicant.female,
         occupation.Farmhand: lambda applicant: applicant.male,
         occupation.Miner: lambda applicant: applicant.male,
-        occupation.Painter: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
-        occupation.BankTeller: lambda applicant: applicant.male if applicant.sim.year < 1950 else True,
-        occupation.Grocer: lambda applicant: applicant.male if applicant.sim.year < 1966 else True,
-        occupation.Bartender: lambda applicant: applicant.male if applicant.sim.year < 1968 else True,
-        occupation.Concierge: lambda applicant: applicant.male if applicant.sim.year < 1968 else True,
-        occupation.DaycareProvider: lambda applicant: applicant.female if applicant.sim.year < 1977 else True,
-        occupation.Landlord: lambda applicant: applicant.male if applicant.sim.year < 1925 else True,
-        occupation.Baker: lambda applicant: applicant.male if applicant.sim.year < 1935 else True,
-        occupation.Cooper: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
-        occupation.Barkeeper: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
-        occupation.Milkman: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
-        occupation.Plasterer: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
-        occupation.Barber: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Painter: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
+        occupation.BankTeller: lambda applicant: applicant.male if applicant.sim.current_date.year < 1950 else True,
+        occupation.Grocer: lambda applicant: applicant.male if applicant.sim.current_date.year < 1966 else True,
+        occupation.Bartender: lambda applicant: applicant.male if applicant.sim.current_date.year < 1968 else True,
+        occupation.Concierge: lambda applicant: applicant.male if applicant.sim.current_date.year < 1968 else True,
+        occupation.DaycareProvider: lambda applicant: applicant.female if applicant.sim.current_date.year < 1977 else True,
+        occupation.Landlord: lambda applicant: applicant.male if applicant.sim.current_date.year < 1925 else True,
+        occupation.Baker: lambda applicant: applicant.male if applicant.sim.current_date.year < 1935 else True,
+        occupation.Cooper: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
+        occupation.Barkeeper: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
+        occupation.Milkman: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
+        occupation.Plasterer: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
+        occupation.Barber: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
         occupation.Butcher: lambda applicant: applicant.male,
         occupation.Firefighter: lambda applicant: applicant.male,
         occupation.PoliceOfficer: lambda applicant: applicant.male,
         occupation.Carpenter: lambda applicant: applicant.male,
         occupation.TaxiDriver: lambda applicant: applicant.male,
-        occupation.BusDriver: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
+        occupation.BusDriver: lambda applicant: applicant.male if applicant.sim.current_date.year < 1972 else True,
         occupation.Blacksmith: lambda applicant: applicant.male,
-        occupation.Woodworker: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Woodworker: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
         occupation.Stonecutter: lambda applicant: applicant.male,
-        occupation.Dressmaker: lambda applicant: applicant.female if applicant.sim.year < 1977 else True,
+        occupation.Dressmaker: lambda applicant: applicant.female if applicant.sim.current_date.year < 1977 else True,
         occupation.Distiller: lambda applicant: applicant.male,
         occupation.Plumber: lambda applicant: applicant.male,
-        occupation.Joiner: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
-        occupation.Innkeeper: lambda applicant: applicant.male if applicant.sim.year < 1928 else True,
-        occupation.Nurse: lambda applicant: applicant.female if applicant.sim.year < 1977 else True,
+        occupation.Joiner: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
+        occupation.Innkeeper: lambda applicant: applicant.male if applicant.sim.current_date.year < 1928 else True,
+        occupation.Nurse: lambda applicant: applicant.female if applicant.sim.current_date.year < 1977 else True,
         occupation.Farmer: lambda applicant: applicant.male,
-        occupation.Shoemaker: lambda applicant: applicant.male if applicant.sim.year < 1960 else True,
+        occupation.Shoemaker: lambda applicant: applicant.male if applicant.sim.current_date.year < 1960 else True,
         occupation.Brewer: lambda applicant: applicant.male,
-        occupation.TattooArtist: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
+        occupation.TattooArtist: lambda applicant: applicant.male if applicant.sim.current_date.year < 1972 else True,
         occupation.Puddler: lambda applicant: applicant.male,
-        occupation.Clothier: lambda applicant: applicant.male if applicant.sim.year < 1930 else True,
-        occupation.Teacher: lambda applicant: applicant.female if applicant.sim.year < 1955 else True,
+        occupation.Clothier: lambda applicant: applicant.male if applicant.sim.current_date.year < 1930 else True,
+        occupation.Teacher: lambda applicant: applicant.female if applicant.sim.current_date.year < 1955 else True,
         occupation.Principal: lambda applicant: (
-            applicant.male if applicant.sim.year < 1965 else True and
+            applicant.male if applicant.sim.current_date.year < 1965 else True and
                                                               any(o for o in applicant.occupations if
                                                                   o.__class__ is occupation.Teacher)
         ),
-        occupation.Tailor: lambda applicant: applicant.male if applicant.sim.year < 1955 else True,
+        occupation.Tailor: lambda applicant: applicant.male if applicant.sim.current_date.year < 1955 else True,
         occupation.Molder: lambda applicant: applicant.male,
-        occupation.Turner: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Turner: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
         occupation.Quarryman: lambda applicant: applicant.male,
-        occupation.Proprietor: lambda applicant: applicant.male if applicant.sim.year < 1955 else True,
-        occupation.Manager: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
+        occupation.Proprietor: lambda applicant: applicant.male if applicant.sim.current_date.year < 1955 else True,
+        occupation.Manager: lambda applicant: applicant.male if applicant.sim.current_date.year < 1972 else True,
         occupation.Druggist: lambda applicant: applicant.male,
-        occupation.InsuranceAgent: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
-        occupation.Jeweler: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
+        occupation.InsuranceAgent: lambda applicant: applicant.male if applicant.sim.current_date.year < 1972 else True,
+        occupation.Jeweler: lambda applicant: applicant.male if applicant.sim.current_date.year < 1972 else True,
         occupation.FireChief: lambda applicant: (
             applicant.male and any(o for o in applicant.occupations if o.__class__ is occupation.Firefighter)
         ),
         occupation.PoliceChief: lambda applicant: (
             applicant.male and any(o for o in applicant.occupations if o.__class__ is occupation.PoliceOfficer)
         ),
-        occupation.Realtor: lambda applicant: applicant.male if applicant.sim.year < 1966 else True,
-        occupation.Mortician: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Realtor: lambda applicant: applicant.male if applicant.sim.current_date.year < 1966 else True,
+        occupation.Mortician: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
         occupation.Doctor: lambda applicant: (
-            applicant.male if applicant.sim.year < 1972 else True and
+            applicant.male if applicant.sim.current_date.year < 1972 else True and
                                                               not applicant.occupations
         ),
         occupation.Engineer: lambda applicant: (
-            applicant.male if applicant.sim.year < 1977 else True and
+            applicant.male if applicant.sim.current_date.year < 1977 else True and
                                                               not applicant.occupations
         ),
-        occupation.Pharmacist: lambda applicant: applicant.male if applicant.sim.year < 1972 else True,
+        occupation.Pharmacist: lambda applicant: applicant.male if applicant.sim.current_date.year < 1972 else True,
         occupation.Architect: lambda applicant: (
-            applicant.male if applicant.sim.year < 1977 else True and
+            applicant.male if applicant.sim.current_date.year < 1977 else True and
                                                               not applicant.occupations
         ),
         occupation.Optometrist: lambda applicant: (
-            applicant.male if applicant.sim.year < 1972 else True and
+            applicant.male if applicant.sim.current_date.year < 1972 else True and
                                                               not applicant.occupations
         ),
         occupation.Dentist: lambda applicant: (
-            applicant.male if applicant.sim.year < 1972 else True and
+            applicant.male if applicant.sim.current_date.year < 1972 else True and
                                                               not applicant.occupations
         ),
         occupation.PlasticSurgeon: lambda applicant: (
-            applicant.male if applicant.sim.year < 1977 else True and
+            applicant.male if applicant.sim.current_date.year < 1977 else True and
                                                               not applicant.occupations
         ),
         occupation.Lawyer: lambda applicant: (
-            applicant.male if applicant.sim.year < 1977 else True and
+            applicant.male if applicant.sim.current_date.year < 1977 else True and
                                                               not applicant.occupations
         ),
-        occupation.Professor: lambda applicant: applicant.male if applicant.sim.year < 1962 else True,
-        occupation.Owner: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
-        occupation.Mayor: lambda applicant: applicant.male if applicant.sim.year < 1977 else True,
+        occupation.Professor: lambda applicant: applicant.male if applicant.sim.current_date.year < 1962 else True,
+        occupation.Owner: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
+        occupation.Mayor: lambda applicant: applicant.male if applicant.sim.current_date.year < 1977 else True,
     }

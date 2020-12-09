@@ -1,0 +1,11 @@
+{
+    "basic": {
+        "seed": 2020,
+        "date_worldgen_begins": "1839-8-19",
+        "date_worldgen_ends": "1939-8-19"
+    },
+    "story_recognition": {
+        "spark_threshold_for_being_captivated": 20,
+        "minimum_number_of_disliked_people_to_be_misanthrope": 10
+    }
+}

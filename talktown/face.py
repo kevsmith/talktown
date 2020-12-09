@@ -33,7 +33,7 @@ class Face:
         config = self.person.sim.config
         feature_will_get_inherited = (
             self.person.biological_mother and
-            random.random() < config.facial_feature_type_heritability[feature_type]
+            random.random() < config.appearance.facial_feature_type_heritability[feature_type]
         )
         if feature_will_get_inherited:
             takes_after = self._determine_whom_feature_gets_inherited_from(feature_type=feature_type)
@@ -72,9 +72,9 @@ class Face:
         """Generate a facial feature for a person given that feature's population distribution."""
         config = self.person.sim.config
         if self.person.male:
-            distribution = config.facial_feature_distributions_male[feature_type]
+            distribution = config.appearance.facial_feature_distributions_male[feature_type]
         else:
-            distribution = config.facial_feature_distributions_female[feature_type]
+            distribution = config.appearance.facial_feature_distributions_female[feature_type]
         x = random.random()
         type_str = next(  # See config.py to understand what this is doing
             feature_type[1] for feature_type in distribution if feature_type[0][0] < x < feature_type[0][1]
@@ -86,7 +86,7 @@ class Face:
         """Determine whom this person will inherit this facial feature from."""
         config = self.person.sim.config
         # Some features are more likely to be inherited from a parent/grandparent of the same sex
-        if random.random() < config.facial_feature_chance_inheritance_according_to_sex[feature_type]:
+        if random.random() < config.appearance.facial_feature_chance_inheritance_according_to_sex[feature_type]:
             if self.person.male:
                 possible_sources = (  # Two chances to inherit from father, one from maternal grandfather
                     self.person.biological_father, self.person.biological_father,
@@ -105,7 +105,7 @@ class Face:
 
     def _determine_graphical_variant_of_this_feature(self, takes_after, feature_type):
         config = self.person.sim.config
-        if random.random() < config.facial_feature_variant_heritability[feature_type]:
+        if random.random() < config.appearance.facial_feature_variant_heritability[feature_type]:
             # Inherit the exact graphical variant that that parent/grandparent has
             variant_id = self._get_persons_feature_variant_of_type(
                 person=takes_after, feature_type=feature_type
@@ -194,7 +194,7 @@ class Skin:
                 skin_color = parent_skin_color_tuple[0]
             else:
                 skin_color = (
-                    self.face.person.sim.config.child_skin_color_given_parents[parent_skin_color_tuple]
+                    self.face.person.sim.config.appearance.child_skin_color_given_parents[parent_skin_color_tuple]
                 )
             self.color = Feature(
                 value=skin_color, variant_id=int(random.random() * 1000),
@@ -231,7 +231,7 @@ class Eyebrows:
         """Initialize a Eyebrows object."""
         self.face = face
         self.size = self.face.determine_facial_feature(feature_type="eyebrow size")
-        if random.random() < self.face.person.sim.config.chance_eyebrows_are_same_color_as_hair:
+        if random.random() < self.face.person.sim.config.appearance.chance_eyebrows_are_same_color_as_hair:
             self.color = self.face.hair.color
         else:
             self.color = self.face.determine_facial_feature(feature_type="eyebrow color")

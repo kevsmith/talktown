@@ -2,9 +2,21 @@
 serializer.py
 
 Serialize Talk of the Town simulation to JSON
+
+The accepted options for exporting are any
+combination of the following:
+
+'all' - Export entire simulation state
+'people' - Export information on people
+'places' - Export information on places
+'events' - Export information on events
+
 """
 import json
 import pathlib
+from .town_layout import Street, Block, Lot, Parcel
+from .town import Town
+from .person import Person
 from . import town
 from . import life_event
 from . import occupation
@@ -13,52 +25,61 @@ from . import business
 from . import relationship
 from .simulation import Simulation
 
-def serialize(sim: Simulation):
+
+
+def serialize(sim: Simulation, options=None):
     """Serialize Talk of the Town simulation to JSON str"""
-    output = {}
-    output['year'] = sim.year
-    output['true_year'] = sim.true_year
-    output['ordinal_date'] = sim.ordinal_date
-    output['month'] = sim.month
-    output['day'] = sim.day
-    output['time_of_day'] = sim.time_of_day
-    output['town'] = serialize_town(sim.town)
-    output['events'] = serialize_events(sim.events)
-    output['birthdays'] = serialize_birthdays(sim.birthdays)
-    output['weather'] = sim.weather
-    output['last_simulated_day'] = sim.last_simulated_day
-    output['n_simulated_timesteps'] = sim.n_simulated_timesteps
+    options = options if options is not None else ['all']
+    output = dict()
+
+    output['town'] = serialize_town(sim.town, options)
+
+    if 'events' in options or 'all' in options:
+        output['events'] = serialize_events(sim.events)
+
+    if 'all' in options:
+        output['birthdays'] = serialize_birthdays(sim.birthdays)
+        output['current_date'] = sim.current_date.strftime('%Y-%m-%d')
+        output['time_of_day'] = sim.time_of_day
+        output['weather'] = sim.weather
+        output['last_simulated_day'] = sim.last_simulated_day
+        output['n_simulated_timesteps'] = sim.n_simulated_timesteps
 
     return json.dumps(output)
 
-def serialize_to_file(sim: Simulation, filename: pathlib.Path):
+def serialize_to_file(sim: Simulation, filename: str, options=None):
     """Serialize Talk of the Town simulation to JSON file"""
-    json_str = serialize(sim)
-    with open(filename, "w") as f:
+    json_str = serialize(sim, options=options)
+
+    path = pathlib.Path(filename)
+
+    # Create new directory if it doesnt exist
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(path, "w") as f:
         f.write(json_str)
 
-def serialize_town(town):
+def serialize_town(town: Town, options):
     """Serialize Talk of the Town town"""
     output = {
         "name": town.name,
-        "founded": town.founded,
+        "foundeding_year": town.founding_year,
         "places": {},
         "people": {},
-        "streets": {},
-        "lots": {},
-        "tracts": {},
-        "parcels": {},
-        "dwelling_places": [],
-        "blocks": {},
         "apartment_complexes": [],
-        "other_businesses": [],
         "houses": [],
         "settlers": [],
         "residents": [],
         "departed": [],
         "deceased": [],
-        "companies": [],
-        "former_companies": [],
+        "businesses": [],
+        "former_businesses": [],
+        "streets": {},
+        "lots": {},
+        "tracts": {},
+        "parcels": {},
+        "residences": [],
+        "blocks": {},
         "paths": {},
         "downtown": town.downtown.id if town.downtown else -1,
         "cemetery": town.cemetery.id if town.cemetery else -1,
@@ -70,76 +91,76 @@ def serialize_town(town):
         "university": town.university.id if town.university else -1
     }
 
-    for c in town.apartment_complexes:
-        output["places"][str(c.id)] = serialize_business(c)
-        output["apartment_complexes"].append(c.id)
+    if 'places' in options or 'all' in options:
 
-    for b in town.other_businesses:
-        output["places"][str(b.id)] = serialize_business(b)
-        output["other_businesses"].append(b.id)
+        for c in town.apartment_complexes:
+            output["places"][str(c.id)] = serialize_business(c)
+            output["apartment_complexes"].append(c.id)
 
-    for h in town.houses:
-        output["places"][str(h.id)] = serialize_dwelling(h)
-        output["houses"].append(h.id)
+        for h in town.houses:
+            output["places"][str(h.id)] = serialize_residence(h)
+            output["houses"].append(h.id)
 
-    for s in town.settlers:
-        output["people"][str(s.id)] = serialize_person(s)
-        output["settlers"].append(s.id)
+        for c in town.businesses:
+            output["places"][str(c.id)] = serialize_business(c)
+            output["businesses"].append(c.id)
 
-    for r in town.residents:
-        output["people"][str(r.id)] = serialize_person(r)
-        output["residents"].append(r.id)
+        for c in town.former_businesses:
+            output["places"][str(c.id)] = serialize_business(c)
+            output["former_businesses"].append(c.id)
 
-    for d in town.departed:
-        output["people"][str(d.id)] = serialize_person(d)
-        output["departed"].append(d.id)
+        for d in town.residences:
+            output["places"][str(d.id)] = serialize_residence(d)
+            output["residences"].append(d.id)
 
-    for d in town.deceased:
-        output["people"][str(d.id)] = serialize_person(d)
-        output["deceased"].append(d.id)
+    if 'people' in options or 'all' in options:
 
-    for c in town.companies:
-        output["places"][str(c.id)] = serialize_business(c)
-        output["companies"].append(c.id)
+        for s in town.settlers:
+            output["people"][str(s.id)] = serialize_person(s)
+            output["settlers"].append(s.id)
 
-    for c in town.former_companies:
-        output["places"][str(c.id)] = serialize_business(c)
-        output["former_companies"].append(c.id)
+        for r in town.residents:
+            output["people"][str(r.id)] = serialize_person(r)
+            output["residents"].append(r.id)
 
-    for l in town.lots:
-        output["lots"][str(l.id)] = serialize_lot(l)
+        for d in town.departed:
+            output["people"][str(d.id)] = serialize_person(d)
+            output["departed"].append(d.id)
 
-    for t in town.tracts:
-        output["tracts"][str(t.id)] = serialize_lot(t)
+        for d in town.deceased:
+            output["people"][str(d.id)] = serialize_person(d)
+            output["deceased"].append(d.id)
 
-    for d in town.dwelling_places:
-        output["places"][str(d.id)] = serialize_dwelling(d)
-        output["dwelling_places"].append(d.id)
+    if 'layout' in options or 'all' in options:
 
-    for s in town.streets:
-        output["streets"][str(s.id)] = serialize_street(s)
+        for l in town.lots:
+            output["lots"][str(l.id)] = serialize_lot(l)
 
-    for p in town.parcels:
-        output["parcels"][str(p.id)] = serialize_parcel(p)
+        for t in town.tracts:
+            output["tracts"][str(t.id)] = serialize_lot(t)
 
-    for b in town.blocks:
-        output["blocks"][str(id(b))] = serialize_block(b)
+        for s in town.streets:
+            output["streets"][str(s.id)] = serialize_street(s)
 
-    for p in town.paths:
-        path_key = "{}_{}".format(p[0].id, p[1].id)
-        output["paths"][path_key] = town.paths[p]
+        for p in town.parcels:
+            output["parcels"][str(p.id)] = serialize_parcel(p)
+
+        for b in town.blocks:
+            output["blocks"][str(id(b))] = serialize_block(b)
+
+        for p in town.paths:
+            path_key = "{}_{}".format(p[0].id, p[1].id)
+            output["paths"][path_key] = town.paths[p]
 
     return output
 
-def serialize_dwelling(d):
-    """Serialize DwellingPlace object"""
+def serialize_residence(d):
+    """Serialize Residence object"""
     output = {
         "id": d.id,
         "type": d.__class__.__name__,
         "town": d.town.name,
         "lot": d.lot.id if d.lot else -1,
-        "house": d.house,
-        "apartment": d.apartment,
         "address": d.address,
         "house_number": d.house_number,
         "block": id(d.block),
@@ -167,7 +188,6 @@ def serialize_street(s):
     """Serialize Street object"""
     output = {
         "id": s.id,
-        "town": s.town.name,
         "number": s.number,
         "direction": s.direction,
         "name": s.name,
@@ -177,7 +197,7 @@ def serialize_street(s):
     }
     return output
 
-def serialize_block(b):
+def serialize_block(b: Block):
     """Serialize block object"""
     output = {
         "id": id(b),
@@ -187,7 +207,7 @@ def serialize_block(b):
     }
     return output
 
-def serialize_parcel(p):
+def serialize_parcel(p: Parcel):
     """Serialize Parcel object"""
     output = {
         "id": p.id,
@@ -199,13 +219,11 @@ def serialize_parcel(p):
     }
     return output
 
-def serialize_lot(l):
+def serialize_lot(l: Lot):
     """Serialize Lot object"""
     output = {
         "id": l.id,
-        "lot": l.lot,
-        "tract": l.tract,
-        "town": l.town.name,
+        "type": l.__class__.__name__,
         "streets": [s.id for s in l.streets],
         "parcels": [p.id for p in l.parcels],
         "block": id(l.block) if l.block else -1,
@@ -228,7 +246,7 @@ def serialize_lot(l):
 
     return output
 
-def serialize_person(p):
+def serialize_person(p: Person):
     """Serialize Person object"""
     output = {
             "id": p.id,
@@ -246,16 +264,14 @@ def serialize_person(p):
             "age": p.age,
             "adult": p.adult,
             "in_work_force": p.in_the_workforce,
-            "male": p.male,
-            "female": p.female,
-            "tag": p.tag,
+            "sex": p.sex,
+            "tags": [t for t in p.tags],
             "alive": p.alive,
             "death_year": p.death_year if p.death_year else -1,
             "gravestone": -1,
             "home": p.home.id if p.home else -1,
             "infertile": p.infertile,
-            "attracted_to_men": p.attracted_to_men,
-            "attracted_to_women": p.attracted_to_women,
+            "attracted_to": [x for x in p.attracted_to],
             "face": serialize_face(p.face),
             "personality": serialize_personality(p.personality),
             "mind": serialize_mind(p.mind),
@@ -264,7 +280,7 @@ def serialize_person(p):
             "first_name": p.first_name if p.first_name else "",
             "middle_name": p.middle_name if p.middle_name else "",
             "last_name": p.last_name if p.last_name else "",
-            "suffix": p.suffix if p.suffix else "",
+            "name_suffix": p.name_suffix if p.name_suffix else "",
             "maiden_name": p.maiden_name if p.maiden_name else "",
             "named_for": [ x.id for x in p.named_for if x ] if p.named_for else [],
             "ancestors": [ x.id for x in p.ancestors ],
@@ -296,7 +312,7 @@ def serialize_person(p):
             "greatgrandchildren": [ x.id for x in p.greatgrandchildren ],
             "greatgrandsons": [ x.id for x in p.greatgrandsons ],
             "greatgranddaughters": [ x.id for x in p.greatgranddaughters ],
-            "bio_parents": [ x.id for x in p.bio_parents ],
+            "bio_parents": [ x.id for x in p.biological_parents ],
             "bio_grandparents": [ x.id for x in p.bio_grandparents ],
             "bio_siblings": [ x.id for x in p.bio_siblings ],
             "bio_full_siblings": [ x.id for x in p.bio_full_siblings ],
@@ -591,20 +607,18 @@ def serialize_events(events: list):
         }
 
         if type(event) is life_event.Adoption:
-            entry["town"] = event.town.name if event.town else ""
-            entry["subject"] = event.subject.id
+            entry["adoptee"] = event.adoptee.id
             entry["adoptive_parents"] = [x.id for x in event.adoptive_parents]
 
         if type(event) is life_event.Birth:
-            entry["town"] = event.town.name if event.town else ""
             entry["biological_mother"] = event.biological_mother.id
             entry["mother"] = event.biological_mother.id
             entry["biological_father"] = event.biological_father.id
-            entry["father"] = event.father.id
-            entry["subject"] = event.subject.id
+            entry["father"] = event.father.id if event.father else -1
+            entry["baby"] = event.baby.id
             entry["doctor"] = event.doctor.person.id if event.doctor else -1
             entry["hospital"] = event.hospital.id if event.hospital else -1
-            entry["nurses"] = [x.person.id for x in event.nurses]
+            entry["nurses"] = [x.id for x in event.nurses]
 
         if type(event) is life_event.BusinessConstruction:
             entry["subject"] = event.subject.id
@@ -614,12 +628,10 @@ def serialize_events(events: list):
             entry["builders"] = [x.id for x in event.builders]
 
         if type(event) is life_event.BusinessClosure:
-            entry["town"] = event.town.name if event.town else ""
             entry["business"] = event.business.id
             entry["reason"] = event.reason.event_number if event.reason else -1
 
         if type(event) is life_event.Death:
-            entry["town"] = event.town.name if event.town else ""
             entry["subject"] = event.subject.id
             entry["widow"] = event.widow.id if event.widow else -1
             entry["cause"] = event.cause
@@ -629,15 +641,14 @@ def serialize_events(events: list):
             entry["cemetery_plot"] = event.cemetery_plot if event.cemetery_plot else -1
 
         if type(event) is life_event.Demolition:
-            entry["town"] = event.town.name
             entry["building"] = event.building.id
-            entry["reason"] = event.reason.event_id
+            entry["reason"] = event.reason.event_id if event.reason else -1
+            entry["demolition_company"] = event.demolition_company.id if event.demolition_company else -1
 
         if type(event) is life_event.Departure:
             entry["subject"] = event.subject.id
 
         if type(event) is life_event.Divorce:
-            entry["town"] = event.town.name
             entry["subjects"] = [x.id for x in event.subjects]
             entry["lawyer"] = event.lawyer.person.id if event.lawyer else -1
             entry["marriage"] = event.marriage.event_id
@@ -648,9 +659,9 @@ def serialize_events(events: list):
             entry["company"] = event.company.id
             entry["occupation"] = id(event.occupation)
             entry["old_occupation"] = id(event.old_occupation)
+            entry["promotion"] = event.promotion
 
         if type(event) is life_event.HomePurchase:
-            entry["town"] = event.town.name
             entry["subjects"] = [x.id for x in event.subjects]
             entry["home"] = event.home.id
             entry["realtor"] = event.realtor.person.id if event.realtor else -1
@@ -661,16 +672,15 @@ def serialize_events(events: list):
             entry["architect"] = event.architect.person.id if event.architect else -1
             entry["house"] = event.house.id
             entry["construction_firm"] = event.construction_firm.id if event.construction_firm else -1
-            entry["builders"] = [x.person.id for x in event.builders]
+            entry["builders"] = [x.id for x in event.builders]
 
         if type(event) is life_event.LayOff:
-            entry["subject"] = event.subject.id
-            entry["company"] = event.company.id
+            entry["person"] = event.person.id
+            entry["business"] = event.business.id
             entry["reason"] = event.reason.event_id if event.reason else -1
-            entry["occupation"] = serialize_occupation(event.occupation) if event.occupation else {}
+            entry["occupation"] = id(event.occupation) if event.occupation else {}
 
         if type(event) is life_event.Marriage:
-            entry["town"] = event.town.name if event.town else ""
             entry["subjects"] = [x.id for x in event.subjects]
             entry["names_at_time_of_marriage"] = [x for x in event.names_at_time_of_marriage]
             entry["name_changes"] = [x.event_id for x in event.name_changes]
@@ -685,7 +695,6 @@ def serialize_events(events: list):
             entry["reason"] = event.reason.event_id if event.reason else -1
 
         if type(event) is life_event.NameChange:
-            entry["town"] = event.town.name if event.town else ""
             entry["subject"] = event.subject.id
             entry["old_last_name"] = event.old_last_name
             entry["new_last_name"] = event.new_last_name
@@ -696,7 +705,7 @@ def serialize_events(events: list):
             entry["law_firm"] = event.law_firm.id if event.law_firm else -1
 
         if type(event) is life_event.Retirement:
-            entry["subject"] = event.subject.id
+            entry["retiree"] = event.retiree.id
             entry["occupation"] = serialize_occupation(event.occupation)
             entry["company"] = event.company.id
 
