@@ -43,9 +43,6 @@ class StoryRecognizer:
             print("\tFound {n} business-owner rivalries".format(n=len(self.business_owner_rivalries)))
             print("\tFound {n} cases of unrequited love".format(n=len(self.unrequited_love_cases)))
 
-
-
-
     def _excavate_unrequited_love_cases(self):
         """Recognize cases where one character's love for another is not reciprocated."""
         unrequited_love_cases = []
@@ -138,6 +135,125 @@ class StoryRecognizer:
                             if not any(br for br in self.business_owner_rivalries if OrderedSet(br.subjects) == OrderedSet(subjects)):
                                 business_owner_rivalries.append(BusinessOwnerRivalry(subjects=subjects))
         return business_owner_rivalries
+
+    def proportion_in_unrequited_love(self):
+        """
+        Return the percentage of the current residents
+        involved in cases of unrequited love
+        """
+        if len(self.simulation.town.residents) == 0:
+            return 0.0
+
+        people_involved = OrderedSet()
+        for case in self.unrequited_love_cases:
+            for person in case.subjects:
+                if person is not None and person.present:
+                    people_involved.add(person)
+        return  len(people_involved) / float(len(self.simulation.town.residents))
+
+    def proportion_in_love_triangle(self):
+        """
+        Return the percentage of the current residents
+        involved in cases of love triangles
+        """
+        if len(self.simulation.town.residents) == 0:
+            return 0.0
+
+        people_involved = OrderedSet()
+        for case in self.love_triangles:
+            for person in case.subjects:
+                if person is not None and person.present:
+                    people_involved.add(person)
+        return len(people_involved) / float(len(self.simulation.town.residents))
+
+    def proportion_in_extramarital_romance(self):
+        """
+        Return the percentage of the current residents
+        involved in cases of extramarital romance
+        """
+        if len(self.simulation.town.residents) == 0:
+            return 0.0
+
+        people_involved = OrderedSet()
+        for case in self.extramarital_romantic_interests:
+            for person in case.subjects:
+                if person is not None and person.present:
+                    people_involved.add(person)
+        return len(people_involved) / float(len(self.simulation.town.residents))
+
+    def proportion_in_asymmetric_friendship(self):
+        """
+        Return the percentage of the current residents
+        involved in cases of asymmetric friendships
+        """
+        if len(self.simulation.town.residents) == 0:
+            return 0.0
+
+        people_involved = OrderedSet()
+        for case in self.extramarital_romantic_interests:
+            for person in case.subjects:
+                if person is not None and person.present:
+                    people_involved.add(person)
+        return len(people_involved) / float(len(self.simulation.town.residents))
+
+    def proportion_in_misanthropy(self):
+        """
+        Return the percentage of the current residents
+        involved in cases of misanthropy
+        """
+        if len(self.simulation.town.residents) == 0:
+            return 0.0
+
+        people_involved = OrderedSet()
+        for case in self.misanthropes:
+            if case.misanthrope.present:
+                people_involved.add(case.misanthrope)
+        return len(people_involved) / float(len(self.simulation.town.residents))
+
+    def proportion_in_rivalry(self):
+        """
+        Return the percentage of the current residents
+        involved in cases of rivalry
+        """
+        if len(self.simulation.town.residents) == 0:
+            return 0.0
+
+        people_involved = OrderedSet()
+        for case in self.rivalries:
+            for person in case.subjects:
+                if person is not None and person.present:
+                    people_involved.add(person)
+        return len(people_involved) / float(len(self.simulation.town.residents))
+
+    def proportion_in_sibling_rivalry(self):
+        """
+        Return the percentage of the current residents
+        involved in cases of sibling rivalry
+        """
+        if len(self.simulation.town.residents) == 0:
+            return 0.0
+
+        people_involved = OrderedSet()
+        for case in self.sibling_rivalries:
+            for person in case.subjects:
+                if person is not None and person.present:
+                    people_involved.add(person)
+        return len(people_involved) / float(len(self.simulation.town.residents))
+
+    def proportion_in_business_rivalry(self):
+        """
+        Return the percentage of the current residents
+        involved in cases of business rivalry
+        """
+        if len(self.simulation.town.residents) == 0:
+            return 0.0
+
+        people_involved = OrderedSet()
+        for case in self.business_owner_rivalries:
+            for person in case.subjects:
+                if person is not None and person.present:
+                    people_involved.add(person)
+        return len(people_involved) / float(len(self.simulation.town.residents))
 
 
 class UnrequitedLove:
