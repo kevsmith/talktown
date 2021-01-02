@@ -12,7 +12,7 @@ install_requires = [
 
 setuptools.setup(
     name="talktown", # Replace with your own username
-    version="0.0.1",
+    version="0.1.0",
     author="Shi Johnson-Bey",
     author_email="shijbey@ucsc.edu",
     description="Simulation based on Talk of the Toen by James Ryan",

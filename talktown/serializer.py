@@ -32,6 +32,7 @@ def serialize(sim: Simulation, options=None):
     options = options if options is not None else ['all']
     output = dict()
 
+    output['seed'] = sim.config.basic.seed
     output['town'] = serialize_town(sim.town, options)
 
     if 'events' in options or 'all' in options:

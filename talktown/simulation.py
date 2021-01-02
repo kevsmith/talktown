@@ -16,12 +16,6 @@ from .person import Person, PersonExNihilo
 from .corpora import Names
 from .business import Business
 
-def print_simulation_msg(msg, char_limit=94):
-    """Print status message to the console"""
-    clear_str = '\r{}'.format(' ' * char_limit)
-    sys.stdout.write('{}\r{}'.format(clear_str,msg[:char_limit]))
-    sys.stdout.flush()
-
 class Simulation:
     """A simulation instance.
 
@@ -183,12 +177,6 @@ class Simulation:
             # Potentially simulate the timestep
             if random.random() < self.config.basic.chance_of_a_timestep_being_simulated():
                 self._simulate_timestep()
-
-            # if self.verbose and len(self.events) > 0:
-            #     print_simulation_msg(str(self.events[-1]))
-
-        if self.verbose:
-           print_simulation_msg("Wrapping up...")
 
     def advance_time(self):
         """Advance time of day and date, if it's a new day."""
