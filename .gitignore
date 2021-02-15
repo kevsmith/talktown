@@ -1,0 +1,5 @@
+**/*.pyc
+**/.vscode
+**/out
+*.log
+sim.json
